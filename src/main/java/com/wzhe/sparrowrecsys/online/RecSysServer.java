@@ -28,7 +28,7 @@ public class RecSysServer {
         new RecSysServer().run();
     }
 
-    private static final int DEFAULT_PORT = 8080;
+    private static final int DEFAULT_PORT = 6010;
 
     public void run() throws Exception{
 
