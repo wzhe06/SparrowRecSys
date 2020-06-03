@@ -13,7 +13,7 @@
     <link href="./css/style.css" rel="stylesheet"/>
     <link rel="shortcut icon" href="./resources/favicon.ico">
     <script src="./js/jquery-3.2.1.min.js"></script>
-    <script src="./js/recsys.js"></script>
+    <script src="./js/recsys.js?v=1.15"></script>
 </head>
 <body id="root">
 <div>
@@ -47,48 +47,8 @@
     <div class="base-compact-header-spacer"></div>
     <div class="ml4-container" style="min-height: 920px;">
         <div id="main-container">
-            <div class="movie-alt">
-                <div class="row movie-details-header movie-details-block"><!---->
-                    <div class="col-md-2 header-backdrop">
-                        <img alt="movie backdrop image" height="250"
-                             src="./posters/1.jpg">
-                    </div>
-                    <div class="col-md-9"><h1 class="movie-title"> Interstellar </h1><!---->
-                        <div class="row movie-highlights">
-                            <div class="col-md-2"><!---->
-                                <div class="heading-and-data">
-                                    <div class="movie-details-heading">Release Year</div>
-                                    <div> 2001
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="heading-and-data">
-                                    <div class="movie-details-heading"> MovieLens predicts for you</div>
-                                    <div> 5.0 stars</div>
-                                </div>
-                                <div class="heading-and-data">
-                                    <div class="movie-details-heading"> Average of 30,212 ratings</div>
-                                    <div> 4.12 stars
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6"><!---->
-                                <div class="heading-and-data">
-                                    <div class="movie-details-heading">Genres</div><!----><span><a
-                                        uisref="exploreGenreShortcut" href="/explore/genres/adventure"><b>Adventure</b></a> ,  </span><span><a
-                                        uisref="exploreGenreShortcut" href="/explore/genres/drama"><b>Drama</b></a> ,  </span><span><a
-                                        uisref="exploreGenreShortcut" href="/explore/genres/science-fiction"><b>Science Fiction</b></a>  </span>
-                                </div>
-                                <div class="heading-and-data">
-                                    <div class="movie-details-heading">Links</div>
-                                    <a target="_blank" href="http://www.imdb.com/title/tt0816692">imdb</a>,<!----><span><a
-                                        target="_blank" href="http://www.themoviedb.org/movie/157336">tmdb</a></span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <div class="movie-alt" id="movie-details-container">
+
             </div>
             <div class="frontpage" id="recPage">
                 <div class="frontpage-section-top">
@@ -150,17 +110,22 @@
 </body>
 
 <script type="text/javascript">
-prependRow('#recPage','Similar Movies','movies-collection1');
 
-appendMovie2Row('#movies-collection1', 'test movie name', '1', '1998', '4.1', '20193');
-appendMovie2Row('#movies-collection1', 'test movie name', '2', '1998', '4.1', '20193');
-appendMovie2Row('#movies-collection1', 'test movie name', '3', '1998', '4.1', '20193');
-appendMovie2Row('#movies-collection1', 'test movie name', '4', '1998', '4.1', '20193');
-appendMovie2Row('#movies-collection1', 'test movie name', '5', '1998', '4.1', '20193');
-appendMovie2Row('#movies-collection1', 'test movie name', '6', '1998', '4.1', '20193');
-appendMovie2Row('#movies-collection1', 'test movie name', '7', '1998', '4.1', '20193');
-appendMovie2Row('#movies-collection1', 'test movie name', '8', '1998', '4.1', '20193');
+function getQueryString(name, windowLocation) {
+    var reg = new RegExp('(^|&)' + name + '=([^&]*)(&|$)', 'i');
+    var r = windowLocation.search.substr(1).match(reg);
+    if (r != null) {
+        return unescape(r[2]);
+    }
+    return null;
+};
 
+var windowLocation = window.location;
+var movieId = getQueryString("movieId",windowLocation);
+
+var baseUrl = windowLocation.protocol + "//" + windowLocation.host + "/"
+
+addMovieDetails("movie-details-container", movieId, baseUrl);
 
 </script>
 </html>

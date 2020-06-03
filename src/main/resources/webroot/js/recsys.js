@@ -1,7 +1,7 @@
 
 
  function appendMovie2Row(rowId, movieName, movieId, year, rating, rateNumber) {
- var divstr = '<div class="movie-row-item" style="margin-right:5px">\
+    var divstr = '<div class="movie-row-item" style="margin-right:5px">\
                     <movie-card-smart>\
                      <movie-card-md1>\
                       <div class="movie-card-md1">\
@@ -29,7 +29,7 @@
                               <polygon fill-rule="evenodd" points="13.7714286 5.4939887 9.22142857 4.89188383 7.27142857 0.790044361 5.32142857 4.89188383 0.771428571 5.4939887 4.11428571 8.56096041 3.25071429 13.0202996 7.27142857 10.8282616 11.2921429 13.0202996 10.4285714 8.56096041" stroke="none"></polygon>\
                              </svg>\
                              <div class="rating-value">\
-                              5.0\
+                              '+rating+'\
                              </div>\
                             </div>\
                            </ml4-rating-or-prediction>\
@@ -62,12 +62,11 @@
                      </movie-card-md1>\
                     </movie-card-smart>\
                    </div>';
-
-                   $(rowId).append(divstr);
+    $('#'+rowId).append(divstr);
 };
 
 
-function prependRow(pageId, rowName, rowId) {
+function addRowFrame(pageId, rowName, rowId) {
  var divstr = '<div class="frontpage-section-top"> \
                 <div class="explore-header frontpage-section-header">\
                  <a class="plainlink" title="go to the full list" href="https://movielens.org/explore/top-picks">' + rowName + '</a> \
@@ -81,7 +80,64 @@ function prependRow(pageId, rowName, rowId) {
                 </div>\
                </div>'
      $(pageId).prepend(divstr);
-}
+};
+
+function addGenreRow(pageId, rowName, rowId, size, baseUrl) {
+    addRowFrame(pageId, rowName, rowId);
+    $.getJSON(baseUrl + "getrecommendation?genre="+rowName+"&size="+size+"&sortby=rating", function(result){
+        $.each(result, function(i, movie){
+          appendMovie2Row(rowId, movie.title, movie.movieId, movie.releaseYear, movie.averageRating.toPrecision(2), movie.ratingNumber);
+        });
+    });
+};
+
+function addMovieDetails(containerId, movieId, baseUrl) {
+
+    $.getJSON(baseUrl + "getmovie?id="+movieId, function(movieObject){
+            var movieDetails = '<div class="row movie-details-header movie-details-block">\
+                                        <div class="col-md-2 header-backdrop">\
+                                            <img alt="movie backdrop image" height="250" src="./posters/'+movieObject.movieId+'.jpg">\
+                                        </div>\
+                                        <div class="col-md-9"><h1 class="movie-title"> '+movieObject.title+' </h1>\
+                                            <div class="row movie-highlights">\
+                                                <div class="col-md-2">\
+                                                    <div class="heading-and-data">\
+                                                        <div class="movie-details-heading">Release Year</div>\
+                                                        <div> '+movieObject.releaseYear+' </div>\
+                                                    </div>\
+                                                </div>\
+                                                <div class="col-md-3">\
+                                                    <div class="heading-and-data">\
+                                                        <div class="movie-details-heading"> MovieLens predicts for you</div>\
+                                                        <div> 5.0 stars</div>\
+                                                    </div>\
+                                                    <div class="heading-and-data">\
+                                                        <div class="movie-details-heading"> Average of '+movieObject.ratingNumber+' ratings</div>\
+                                                        <div> '+movieObject.averageRating.toPrecision(2)+' stars\
+                                                        </div>\
+                                                    </div>\
+                                                </div>\
+                                                <div class="col-md-6">\
+                                                    <div class="heading-and-data">\
+                                                        <div class="movie-details-heading">Genres</div>\
+                                                        <span><a href="/explore/genres/adventure"><b>Adventure</b></a> ,  </span>\
+                                                        <span><a href="/explore/genres/drama"><b>Drama</b></a> ,  </span>\
+                                                        <span><a href="/explore/genres/science-fiction"><b>Science Fiction</b></a></span>\
+                                                    </div>\
+                                                    <div class="heading-and-data">\
+                                                        <div class="movie-details-heading">Links</div>\
+                                                        <a target="_blank" href="http://www.imdb.com/title/tt'+movieObject.imdbId+'">imdb</a>,\
+                                                        <span><a target="_blank" href="http://www.themoviedb.org/movie/'+movieObject.tmdbId+'">tmdb</a></span>\
+                                                    </div>\
+                                                </div>\
+                                            </div>\
+                                        </div>\
+                                    </div>'
+                $("#"+containerId).prepend(movieDetails);
+    });
+};
+
+
 
 
 
