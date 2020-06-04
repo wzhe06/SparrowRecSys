@@ -14,6 +14,15 @@
     <link rel="shortcut icon" href="./resources/favicon.ico">
     <script src="./js/jquery-3.2.1.min.js"></script>
     <script src="./js/recsys.js"></script>
+    <style>
+        .movie-row .movie-row-bounds .movie-row-item{
+            display: block;
+        }
+
+        .movie-card-md1{
+            margin:0 5px 15px 0
+        }
+    </style>
 </head>
 <body id="root">
 <div>
@@ -106,16 +115,24 @@
 </body>
 
 <script type="text/javascript">
-prependRow('#recPage','Recommended For You','movies-collection1');
+function getQueryString(name, windowLocation) {
+    var reg = new RegExp('(^|&)' + name + '=([^&]*)(&|$)', 'i');
+    var r = windowLocation.search.substr(1).match(reg);
+    if (r != null) {
+        return unescape(r[2]);
+    }
+    return null;
+};
 
-appendMovie2Row('#movies-collection1', 'test movie name', '1', '1998', '4.1', '20193');
-appendMovie2Row('#movies-collection1', 'test movie name', '2', '1998', '4.1', '20193');
-appendMovie2Row('#movies-collection1', 'test movie name', '3', '1998', '4.1', '20193');
-appendMovie2Row('#movies-collection1', 'test movie name', '4', '1998', '4.1', '20193');
-appendMovie2Row('#movies-collection1', 'test movie name', '5', '1998', '4.1', '20193');
-appendMovie2Row('#movies-collection1', 'test movie name', '6', '1998', '4.1', '20193');
-appendMovie2Row('#movies-collection1', 'test movie name', '7', '1998', '4.1', '20193');
-appendMovie2Row('#movies-collection1', 'test movie name', '8', '1998', '4.1', '20193');
+
+var windowLocation = window.location;
+var type = getQueryString("type",windowLocation);
+var value = getQueryString("value",windowLocation);
+
+var baseUrl = windowLocation.protocol + "//" + windowLocation.host + "/"
+if(type == "genre"){
+    addGenreRow('#recPage', value, value.toLowerCase() + '-collection', 100, baseUrl);
+}
 
 </script>
 </html>

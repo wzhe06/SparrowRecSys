@@ -1,59 +1,38 @@
 package com.wzhe.sparrowrecsys.online.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wzhe.sparrowrecsys.online.datamanager.Movie;
+import com.wzhe.sparrowrecsys.online.recflow.SimilarMovieFlow;
+
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.List;
 
 public class SimilarMovieService extends HttpServlet {
     protected void doGet(HttpServletRequest request,
-                         HttpServletResponse response) throws ServletException,
-            IOException {
-
-        StringBuffer result = new StringBuffer();
-
+                         HttpServletResponse response) throws IOException {
         try {
             response.setContentType("application/json");
             response.setStatus(HttpServletResponse.SC_OK);
             response.setCharacterEncoding("UTF-8");
             response.setHeader("Access-Control-Allow-Origin", "*");
 
-            result.append("{\"simulation\":[");
-/*
+            String movieId = request.getParameter("movieId");
+            String size = request.getParameter("size");
+            String model = request.getParameter("model");
 
-                for (int i = 0; i < allSimulationId.size(); i++) {
+            List<Movie> movies = SimilarMovieFlow.getRecList(Integer.parseInt(movieId), Integer.parseInt(size), model);
 
-                    result.append("{\"name\":");
-
-                    String simulationName = allSimulationId.get(i);
-
-                    if (simulationNames.containsKey(simulationName)) {
-                        simulationName = simulationName + " | " + simulationNames.get(simulationName);
-                    }
-
-                    result.append("\"" + simulationName + "\"");
-                    result.append(",");
-                    result.append("\"value\":");
-                    result.append("\"" + allSimulationId.get(i) + "\"");
-                    result.append("}");
-
-                    if (i != allSimulationId.size() - 1) {
-                        result.append(",");
-                    }
-                }
-*/
-            result.append("]}");
-
+            ObjectMapper mapper = new ObjectMapper();
+            String jsonMovies = mapper.writeValueAsString(movies);
+            response.getWriter().println(jsonMovies);
 
         } catch (Exception e) {
             e.printStackTrace();
-            response.getWriter().println(result.toString());
+            response.getWriter().println("");
         }
-
-        //System.out.println(result.toString());
-        response.getWriter().println(result.toString());
-
-        //System.out.println("access");
     }
 }

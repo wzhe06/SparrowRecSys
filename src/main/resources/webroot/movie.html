@@ -13,7 +13,16 @@
     <link href="./css/style.css" rel="stylesheet"/>
     <link rel="shortcut icon" href="./resources/favicon.ico">
     <script src="./js/jquery-3.2.1.min.js"></script>
-    <script src="./js/recsys.js?v=1.15"></script>
+    <script src="./js/recsys.js?v=1.18"></script>
+    <style>
+        .movie-row .movie-row-bounds .movie-row-item{
+            display: block;
+        }
+
+        .movie-card-md1{
+            margin:0 5px 15px 0
+        }
+    </style>
 </head>
 <body id="root">
 <div>
@@ -48,7 +57,6 @@
     <div class="ml4-container" style="min-height: 920px;">
         <div id="main-container">
             <div class="movie-alt" id="movie-details-container">
-
             </div>
             <div class="frontpage" id="recPage">
                 <div class="frontpage-section-top">
@@ -126,6 +134,7 @@ var movieId = getQueryString("movieId",windowLocation);
 var baseUrl = windowLocation.protocol + "//" + windowLocation.host + "/"
 
 addMovieDetails("movie-details-container", movieId, baseUrl);
+addRelatedMovies("#recPage", "relatedMovies", movieId, baseUrl);
 
 </script>
 </html>

@@ -1,6 +1,13 @@
 
 
- function appendMovie2Row(rowId, movieName, movieId, year, rating, rateNumber) {
+ function appendMovie2Row(rowId, movieName, movieId, year, rating, rateNumber, genres, baseUrl) {
+
+    var genresStr = "";
+    $.each(genres, function(i, genre){
+        genresStr += ('<div class="genre"><a href="'+baseUrl+'collection.html?type=genre&value='+genre+'"><b>'+genre+'</b></a></div>');
+    });
+
+
     var divstr = '<div class="movie-row-item" style="margin-right:5px">\
                     <movie-card-smart>\
                      <movie-card-md1>\
@@ -38,15 +45,7 @@
                          </div>\
                          <div class="below-fold">\
                           <div class="genre-list">\
-                           <div class="genre">\
-                            <a uisref="exploreGenreShortcut" href="https://movielens.org/explore/genres/adventure"><b>Adventure</b></a>\
-                           </div>\
-                           <div class="genre">\
-                            <a uisref="exploreGenreShortcut" href="https://movielens.org/explore/genres/drama"><b>Drama</b></a>\
-                           </div>\
-                           <div class="genre">\
-                            <a uisref="exploreGenreShortcut" href="https://movielens.org/explore/genres/science-fiction"><b>Science Fiction</b></a>\
-                           </div>\
+                           '+genresStr+'\
                           </div>\
                           <div class="ratings-display">\
                            <div class="rating-average">\
@@ -66,10 +65,26 @@
 };
 
 
-function addRowFrame(pageId, rowName, rowId) {
+function addRowFrame(pageId, rowName, rowId, baseUrl) {
  var divstr = '<div class="frontpage-section-top"> \
                 <div class="explore-header frontpage-section-header">\
-                 <a class="plainlink" title="go to the full list" href="https://movielens.org/explore/top-picks">' + rowName + '</a> \
+                 <a class="plainlink" title="go to the full list" href="'+baseUrl+'collection.html?type=genre&value='+rowName+'">' + rowName + '</a> \
+                </div>\
+                <div class="movie-row">\
+                 <div class="movie-row-bounds">\
+                  <div class="movie-row-scrollable" id="' + rowId +'" style="margin-left: 0px;">\
+                  </div>\
+                 </div>\
+                 <div class="clearfix"></div>\
+                </div>\
+               </div>'
+     $(pageId).prepend(divstr);
+};
+
+function addRowFrameWithoutLink(pageId, rowName, rowId, baseUrl) {
+ var divstr = '<div class="frontpage-section-top"> \
+                <div class="explore-header frontpage-section-header">\
+                 <a class="plainlink" title="go to the full list" href="'+baseUrl+'collection.html?type=genre&value='+rowName+'">' + rowName + '</a> \
                 </div>\
                 <div class="movie-row">\
                  <div class="movie-row-bounds">\
@@ -83,18 +98,51 @@ function addRowFrame(pageId, rowName, rowId) {
 };
 
 function addGenreRow(pageId, rowName, rowId, size, baseUrl) {
-    addRowFrame(pageId, rowName, rowId);
+    addRowFrame(pageId, rowName, rowId, baseUrl);
     $.getJSON(baseUrl + "getrecommendation?genre="+rowName+"&size="+size+"&sortby=rating", function(result){
         $.each(result, function(i, movie){
-          appendMovie2Row(rowId, movie.title, movie.movieId, movie.releaseYear, movie.averageRating.toPrecision(2), movie.ratingNumber);
+          appendMovie2Row(rowId, movie.title, movie.movieId, movie.releaseYear, movie.averageRating.toPrecision(2), movie.ratingNumber, movie.genres,baseUrl);
         });
     });
 };
 
+function addRelatedMovies(pageId, containerId, movieId, baseUrl){
+
+    var rowDiv = '<div class="frontpage-section-top"> \
+                <div class="explore-header frontpage-section-header">\
+                 Related Movies \
+                </div>\
+                <div class="movie-row">\
+                 <div class="movie-row-bounds">\
+                  <div class="movie-row-scrollable" id="' + containerId +'" style="margin-left: 0px;">\
+                  </div>\
+                 </div>\
+                 <div class="clearfix"></div>\
+                </div>\
+               </div>'
+    $(pageId).prepend(rowDiv);
+
+    $.getJSON(baseUrl + "getsimilarmovie?movieId="+movieId+"&size=16&model=genreSimilarity", function(result){
+            $.each(result, function(i, movie){
+              appendMovie2Row(containerId, movie.title, movie.movieId, movie.releaseYear, movie.averageRating.toPrecision(2), movie.ratingNumber, movie.genres,baseUrl);
+            });
+    });
+}
+
 function addMovieDetails(containerId, movieId, baseUrl) {
 
     $.getJSON(baseUrl + "getmovie?id="+movieId, function(movieObject){
-            var movieDetails = '<div class="row movie-details-header movie-details-block">\
+        var genres = "";
+        $.each(movieObject.genres, function(i, genre){
+                genres += ('<span><a href="'+baseUrl+'collection.html?type=genre&value='+genre+'"><b>'+genre+'</b></a>');
+                if(i < movieObject.genres.length-1){
+                    genres+=", </span>";
+                }else{
+                    genres+="</span>";
+                }
+        });
+
+        var movieDetails = '<div class="row movie-details-header movie-details-block">\
                                         <div class="col-md-2 header-backdrop">\
                                             <img alt="movie backdrop image" height="250" src="./posters/'+movieObject.movieId+'.jpg">\
                                         </div>\
@@ -120,9 +168,7 @@ function addMovieDetails(containerId, movieId, baseUrl) {
                                                 <div class="col-md-6">\
                                                     <div class="heading-and-data">\
                                                         <div class="movie-details-heading">Genres</div>\
-                                                        <span><a href="/explore/genres/adventure"><b>Adventure</b></a> ,  </span>\
-                                                        <span><a href="/explore/genres/drama"><b>Drama</b></a> ,  </span>\
-                                                        <span><a href="/explore/genres/science-fiction"><b>Science Fiction</b></a></span>\
+                                                        '+genres+'\
                                                     </div>\
                                                     <div class="heading-and-data">\
                                                         <div class="movie-details-heading">Links</div>\
@@ -133,7 +179,7 @@ function addMovieDetails(containerId, movieId, baseUrl) {
                                             </div>\
                                         </div>\
                                     </div>'
-                $("#"+containerId).prepend(movieDetails);
+        $("#"+containerId).prepend(movieDetails);
     });
 };
 
