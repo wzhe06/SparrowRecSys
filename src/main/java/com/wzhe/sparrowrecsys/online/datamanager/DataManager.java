@@ -147,12 +147,12 @@ public class DataManager {
         this.genreReverseIndexMap.get(genre).add(movie);
     }
 
-    public List<Movie> getMoviesByGenre(String genre, int size, String sortby){
+    public List<Movie> getMoviesByGenre(String genre, int size, String sortBy){
         if (null != genre){
             List<Movie> movies = new ArrayList<>(this.genreReverseIndexMap.get(genre));
-            switch (sortby){
+            switch (sortBy){
                 case "rating":movies.sort((m1, m2) -> Double.compare(m2.getAverageRating(), m1.getAverageRating()));break;
-                case "relaseYear": movies.sort((m1, m2) -> Integer.compare(m2.getReleaseYear(), m1.getReleaseYear()));break;
+                case "releaseYear": movies.sort((m1, m2) -> Integer.compare(m2.getReleaseYear(), m1.getReleaseYear()));break;
                 default:
             }
 
@@ -162,6 +162,28 @@ public class DataManager {
             return movies;
         }
         return null;
+    }
+
+    public List<Movie> getMovies(int size, String sortBy){
+            List<Movie> movies = new ArrayList<>(movieMap.values());
+            switch (sortBy){
+                case "rating":movies.sort((m1, m2) -> Double.compare(m2.getAverageRating(), m1.getAverageRating()));break;
+                case "releaseYear": movies.sort((m1, m2) -> Integer.compare(m2.getReleaseYear(), m1.getReleaseYear()));break;
+                default:
+            }
+
+            if (movies.size() > size){
+                return movies.subList(0, size);
+            }
+            return movies;
+    }
+
+    public double[] getUserEmbedding(int userId, String embeddingType){
+        return new double[10];
+    }
+
+    public double[] getItemEmbedding(int userId, String embeddingType){
+        return new double[10];
     }
 
     public Movie getMovieById(int movieId){
