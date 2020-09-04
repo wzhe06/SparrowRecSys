@@ -1,6 +1,7 @@
 package com.wzhe.sparrowrecsys.online.datamanager;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.wzhe.sparrowrecsys.online.model.Embedding;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,6 +15,7 @@ public class Movie {
     List<String> genres;
     int ratingNumber;
     double averageRating;
+    Embedding emb;
 
     @JsonIgnore
     List<Rating> ratings;
@@ -23,6 +25,7 @@ public class Movie {
         averageRating = 0;
         this.genres = new ArrayList<>();
         this.ratings = new ArrayList<>();
+        this.emb = null;
     }
 
     public int getMovieId() {
@@ -93,5 +96,13 @@ public class Movie {
 
     public double getAverageRating() {
         return averageRating;
+    }
+
+    public Embedding getEmb() {
+        return emb;
+    }
+
+    public void setEmb(Embedding emb) {
+        this.emb = emb;
     }
 }

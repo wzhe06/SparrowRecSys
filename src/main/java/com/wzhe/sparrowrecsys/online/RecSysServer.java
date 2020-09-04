@@ -45,7 +45,8 @@ public class RecSysServer {
         System.out.printf("Web Root URI: %s%n", webRootUri.getPath());
 
         DataManager.getInstance().loadData(webRootUri.getPath() + "sampledata/movies.csv",
-                webRootUri.getPath() + "sampledata/links.csv",webRootUri.getPath() + "sampledata/ratings.csv");
+                webRootUri.getPath() + "sampledata/links.csv",webRootUri.getPath() + "sampledata/ratings.csv",
+                webRootUri.getPath() + "sampledata/graphEmbedding.txt");
 
         ServletContextHandler context = new ServletContextHandler();
         context.setContextPath("/");

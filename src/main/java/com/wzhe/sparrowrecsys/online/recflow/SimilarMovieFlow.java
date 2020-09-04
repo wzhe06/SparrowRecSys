@@ -14,7 +14,7 @@ public class SimilarMovieFlow {
             return new ArrayList<>();
         }
         List<Movie> candidates = candidateGenerator(movie);
-        List<Movie> rankedList = ranker(movie, candidates);
+        List<Movie> rankedList = ranker(movie, candidates, model);
 
         if (rankedList.size() > size){
             return rankedList.subList(0, size);
@@ -23,7 +23,6 @@ public class SimilarMovieFlow {
     }
 
     public static List<Movie> candidateGenerator(Movie movie){
-        ArrayList<Movie> candidates = new ArrayList<>();
         HashMap<Integer, Movie> candidateMap = new HashMap<>();
         for (String genre : movie.getGenres()){
             List<Movie> oneCandidates = DataManager.getInstance().getMoviesByGenre(genre, 100, "rating");
@@ -106,13 +105,18 @@ public class SimilarMovieFlow {
         return dotProduct;
     }
 
-
-
-
-    public static List<Movie> ranker(Movie movie, List<Movie> candidates){
+    public static List<Movie> ranker(Movie movie, List<Movie> candidates, String model){
         HashMap<Movie, Double> candidateScoreMap = new HashMap<>();
         for (Movie candidate : candidates){
-            candidateScoreMap.put(candidate, calculateSimilarScore(movie, candidate));
+            double similarity;
+            switch (model){
+                case "emb":
+                    similarity = calculateEmbSimilarScore(movie, candidate);
+                    break;
+                default:
+                    similarity = calculateSimilarScore(movie, candidate);
+            }
+            candidateScoreMap.put(candidate, similarity);
         }
         List<Movie> rankedList = new ArrayList<>();
         candidateScoreMap.entrySet().stream().sorted(Map.Entry.comparingByValue(Comparator.reverseOrder())).forEach(m -> rankedList.add(m.getKey()));
@@ -133,5 +137,12 @@ public class SimilarMovieFlow {
         double ratingScoreWeight = 0.3;
 
         return genreSimilarity * similarityWeight + ratingScore * ratingScoreWeight;
+    }
+
+    public static double calculateEmbSimilarScore(Movie movie, Movie candidate){
+        if (null == movie || null == candidate){
+            return -1;
+        }
+        return movie.getEmb().calculateSimilarity(candidate.getEmb());
     }
 }

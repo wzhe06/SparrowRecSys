@@ -1,5 +1,7 @@
 package com.wzhe.sparrowrecsys.online.datamanager;
 
+import com.wzhe.sparrowrecsys.online.model.Embedding;
+
 import java.io.File;
 import java.util.*;
 
@@ -23,10 +25,11 @@ public class DataManager {
         return instance;
     }
 
-    public void loadData(String movieDataPath, String linkDataPath, String ratingDataPath) throws Exception{
+    public void loadData(String movieDataPath, String linkDataPath, String ratingDataPath, String movieEmbPath) throws Exception{
         loadMovieData(movieDataPath);
         loadLinkData(linkDataPath);
         loadRatingData(ratingDataPath);
+        loadMovieEmb(movieEmbPath);
     }
 
     private void loadMovieData(String movieDataPath) throws Exception{
@@ -63,6 +66,33 @@ public class DataManager {
             }
         }
         System.out.println("Loading movie data completed. " + this.movieMap.size() + " movies in total.");
+    }
+
+    private void loadMovieEmb(String movieEmbPath) throws Exception{
+        System.out.println("Loading movie embedding from " + movieEmbPath + " ...");
+        int validEmbCount = 0;
+        try (Scanner scanner = new Scanner(new File(movieEmbPath))) {
+            while (scanner.hasNextLine()) {
+                String movieRawEmbData = scanner.nextLine();
+                String[] movieEmbData = movieRawEmbData.split(":");
+                if (movieEmbData.length == 2){
+                    Movie m = getMovieById(Integer.parseInt(movieEmbData[0]));
+                    if (null == m){
+                        continue;
+                    }
+
+                    String[] embStrings = movieEmbData[1].split("\\s");
+                    Embedding movieEmb = new Embedding();
+                    for (String element : embStrings){
+                        movieEmb.addDim(Float.parseFloat(element));
+                    }
+
+                    m.setEmb(movieEmb);
+                    validEmbCount++;
+                }
+            }
+        }
+        System.out.println("Loading movie embedding completed. " + validEmbCount + " movie embeddings in total.");
     }
 
     private int parseReleaseYear(String rawTitle){
