@@ -2,7 +2,11 @@ package com.wzhe.sparrowrecsys.online.model;
 
 import java.util.ArrayList;
 
+/**
+ * Embedding Class, contains embedding vector and related calculation
+ */
 public class Embedding {
+    //embedding vector
     ArrayList<Float> embVector;
 
     public Embedding(){
@@ -25,6 +29,7 @@ public class Embedding {
         this.embVector = embVector;
     }
 
+    //calculate cosine similarity between two embeddings
     public double calculateSimilarity(Embedding otherEmb){
         if (null == embVector || null == otherEmb || null == otherEmb.getEmbVector()
                 || embVector.size() != otherEmb.getEmbVector().size()){

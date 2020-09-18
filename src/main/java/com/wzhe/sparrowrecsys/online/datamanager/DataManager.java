@@ -5,10 +5,17 @@ import com.wzhe.sparrowrecsys.online.model.Embedding;
 import java.io.File;
 import java.util.*;
 
+/**
+ * DataManager is an utility class, takes charge of all data loading logic.
+ */
+
 public class DataManager {
+    //singleton instance
     static DataManager instance;
+
     HashMap<Integer, Movie> movieMap;
     HashMap<Integer, User> userMap;
+    //genre reverse index for quick querying all movies in a genre
     HashMap<String, List<Movie>> genreReverseIndexMap;
 
     private DataManager(){
@@ -25,6 +32,7 @@ public class DataManager {
         return instance;
     }
 
+    //load data from file system including movie, rating, link data and model data like embedding vectors.
     public void loadData(String movieDataPath, String linkDataPath, String ratingDataPath, String movieEmbPath) throws Exception{
         loadMovieData(movieDataPath);
         loadLinkData(linkDataPath);
@@ -32,6 +40,7 @@ public class DataManager {
         loadMovieEmb(movieEmbPath);
     }
 
+    //load movie data from movies.csv
     private void loadMovieData(String movieDataPath) throws Exception{
         System.out.println("Loading movie data from " + movieDataPath + " ...");
         boolean skipFirstLine = true;
@@ -68,6 +77,7 @@ public class DataManager {
         System.out.println("Loading movie data completed. " + this.movieMap.size() + " movies in total.");
     }
 
+    //load movie embedding
     private void loadMovieEmb(String movieEmbPath) throws Exception{
         System.out.println("Loading movie embedding from " + movieEmbPath + " ...");
         int validEmbCount = 0;
@@ -95,6 +105,7 @@ public class DataManager {
         System.out.println("Loading movie embedding completed. " + validEmbCount + " movie embeddings in total.");
     }
 
+    //parse release year
     private int parseReleaseYear(String rawTitle){
         if (null == rawTitle || rawTitle.trim().length() < 6){
             return -1;
@@ -108,6 +119,7 @@ public class DataManager {
         }
     }
 
+    //load links data from links.csv
     private void loadLinkData(String linkDataPath) throws Exception{
         System.out.println("Loading link data from " + linkDataPath + " ...");
         int count = 0;
@@ -134,6 +146,7 @@ public class DataManager {
         System.out.println("Loading link data completed. " + count + " links in total.");
     }
 
+    //load ratings data from ratings.csv
     private void loadRatingData(String ratingDataPath) throws Exception{
         System.out.println("Loading rating data from " + ratingDataPath + " ...");
         boolean skipFirstLine = true;
@@ -170,6 +183,7 @@ public class DataManager {
         System.out.println("Loading rating data completed. " + count + " ratings in total.");
     }
 
+    //add movie to genre reversed index
     private void addMovie2GenreIndex(String genre, Movie movie){
         if (!this.genreReverseIndexMap.containsKey(genre)){
             this.genreReverseIndexMap.put(genre, new ArrayList<>());
@@ -177,6 +191,7 @@ public class DataManager {
         this.genreReverseIndexMap.get(genre).add(movie);
     }
 
+    //get movies by genre, and order the movies by sortBy method
     public List<Movie> getMoviesByGenre(String genre, int size, String sortBy){
         if (null != genre){
             List<Movie> movies = new ArrayList<>(this.genreReverseIndexMap.get(genre));
@@ -194,6 +209,7 @@ public class DataManager {
         return null;
     }
 
+    //get top N movies order by sortBy method
     public List<Movie> getMovies(int size, String sortBy){
             List<Movie> movies = new ArrayList<>(movieMap.values());
             switch (sortBy){
@@ -208,18 +224,12 @@ public class DataManager {
             return movies;
     }
 
-    public double[] getUserEmbedding(int userId, String embeddingType){
-        return new double[10];
-    }
-
-    public double[] getItemEmbedding(int userId, String embeddingType){
-        return new double[10];
-    }
-
+    //get movie object by movie id
     public Movie getMovieById(int movieId){
         return this.movieMap.get(movieId);
     }
 
+    //get user object by user id
     public User getUserById(int userId){
         return this.userMap.get(userId);
     }

@@ -6,6 +6,9 @@ import com.wzhe.sparrowrecsys.online.model.Embedding;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Movie Class, contains attributes loaded from movielens movies.csv and other advanced data like averageRating, emb, etc.
+ */
 public class Movie {
     int movieId;
     String title;
@@ -13,10 +16,16 @@ public class Movie {
     String imdbId;
     String tmdbId;
     List<String> genres;
+    //how many user rate the movie
     int ratingNumber;
+    //average rating score
     double averageRating;
+
+    //embedding of the movie
+    @JsonIgnore
     Embedding emb;
 
+    //all rating scores list
     @JsonIgnore
     List<Rating> ratings;
 

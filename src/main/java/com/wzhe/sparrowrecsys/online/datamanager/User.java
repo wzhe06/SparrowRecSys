@@ -3,6 +3,9 @@ package com.wzhe.sparrowrecsys.online.datamanager;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * User class, contains attributes loaded from movielens ratings.csv
+ */
 public class User {
     int userId;
     List<Rating> ratings;

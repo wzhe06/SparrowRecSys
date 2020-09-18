@@ -1,5 +1,8 @@
 package com.wzhe.sparrowrecsys.online.datamanager;
 
+/**
+ * Rating Class, contains attributes loaded from movielens ratings.csv
+ */
 public class Rating {
     int movieId;
     int userId;
