@@ -2,12 +2,21 @@ package com.wzhe.sparrowrecsys.online.recflow;
 
 import com.wzhe.sparrowrecsys.online.datamanager.DataManager;
 import com.wzhe.sparrowrecsys.online.datamanager.Movie;
-import com.wzhe.sparrowrecsys.online.datamanager.User;
-
 import java.util.*;
+
+/**
+ * Recommendation flow of similar movies
+ */
 
 public class SimilarMovieFlow {
 
+    /**
+     * get recommendation movie list
+     * @param movieId input movie id
+     * @param size  size of similar items
+     * @param model model used for calculating similarity
+     * @return  list of similar movies
+     */
     public static List<Movie> getRecList(int movieId, int size, String model){
         Movie movie = DataManager.getInstance().getMovieById(movieId);
         if (null == movie){
@@ -22,6 +31,11 @@ public class SimilarMovieFlow {
         return rankedList;
     }
 
+    /**
+     * generate candidates for similar movies recommendation
+     * @param movie input movie object
+     * @return  movie candidates
+     */
     public static List<Movie> candidateGenerator(Movie movie){
         HashMap<Integer, Movie> candidateMap = new HashMap<>();
         for (String genre : movie.getGenres()){
@@ -34,12 +48,17 @@ public class SimilarMovieFlow {
         return new ArrayList<>(candidateMap.values());
     }
 
-
-    public static List<Movie> multipleRetrievalCandidates(List<Movie> userHistory){
-        HashSet<String> genres = new HashSet<>();
-        for (Movie movie : userHistory){
-            genres.addAll(movie.getGenres());
+    /**
+     * multiple-retrieval candidate generation method
+     * @param movie input movie object
+     * @return movie candidates
+     */
+    public static List<Movie> multipleRetrievalCandidates(Movie movie){
+        if (null == movie){
+            return null;
         }
+
+        HashSet<String> genres = new HashSet<>(movie.getGenres());
 
         HashMap<Integer, Movie> candidateMap = new HashMap<>();
         for (String genre : genres){
@@ -59,27 +78,28 @@ public class SimilarMovieFlow {
             candidateMap.put(candidate.getMovieId(), candidate);
         }
 
-        for (Movie movie : userHistory){
-            candidateMap.remove(movie.getMovieId());
-        }
-
+        candidateMap.remove(movie.getMovieId());
         return new ArrayList<>(candidateMap.values());
     }
 
-
-    public static List<Movie> retrievalCandidatesByEmbedding(User user, int size){
-        if (null == user){
+    /**
+     * embedding based candidate generation method
+     * @param movie input movie
+     * @param size  size of candidate pool
+     * @return  movie candidates
+     */
+    public static List<Movie> retrievalCandidatesByEmbedding(Movie movie, int size){
+        if (null == movie){
             return null;
         }
-        double[] userEmbedding = DataManager.getInstance().getUserEmbedding(user.getUserId(), "item2vec");
+        double[] userEmbedding = DataManager.getInstance().getUserEmbedding(movie.getMovieId(), "item2vec");
         if (null == userEmbedding){
             return null;
         }
         List<Movie> allCandidates = DataManager.getInstance().getMovies(10000, "rating");
         HashMap<Movie,Double> movieScoreMap = new HashMap<>();
         for (Movie candidate : allCandidates){
-            double[] itemEmbedding = DataManager.getInstance().getItemEmbedding(candidate.getMovieId(), "item2vec");
-            double similarity = calculateEmbeddingSimilarity(userEmbedding, itemEmbedding);
+            double similarity = calculateEmbSimilarScore(movie, candidate);
             movieScoreMap.put(candidate, similarity);
         }
 
@@ -94,17 +114,13 @@ public class SimilarMovieFlow {
         return candidates.subList(0, Math.min(candidates.size(), size));
     }
 
-    private static double calculateEmbeddingSimilarity(double[] embedding1, double[] embedding2){
-        if (null == embedding1 || null == embedding2 || embedding1.length != embedding2.length){
-            return 0d;
-        }
-        double dotProduct = 0;
-        for (int i = 0; i < embedding1.length; i++){
-            dotProduct += embedding1[i] * embedding2[i];
-        }
-        return dotProduct;
-    }
-
+    /**
+     * rank candidates
+     * @param movie    input movie
+     * @param candidates    movie candidates
+     * @param model     model name used for ranking
+     * @return  ranked movie list
+     */
     public static List<Movie> ranker(Movie movie, List<Movie> candidates, String model){
         HashMap<Movie, Double> candidateScoreMap = new HashMap<>();
         for (Movie candidate : candidates){
@@ -123,6 +139,12 @@ public class SimilarMovieFlow {
         return rankedList;
     }
 
+    /**
+     * function to calculate similarity score
+     * @param movie     input movie
+     * @param candidate candidate movie
+     * @return  similarity score
+     */
     public static double calculateSimilarScore(Movie movie, Movie candidate){
         int sameGenreCount = 0;
         for (String genre : movie.getGenres()){
@@ -139,6 +161,12 @@ public class SimilarMovieFlow {
         return genreSimilarity * similarityWeight + ratingScore * ratingScoreWeight;
     }
 
+    /**
+     * function to calculate similarity score based on embedding
+     * @param movie     input movie
+     * @param candidate candidate movie
+     * @return  similarity score
+     */
     public static double calculateEmbSimilarScore(Movie movie, Movie candidate){
         if (null == movie || null == candidate){
             return -1;
