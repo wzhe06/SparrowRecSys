@@ -89,13 +89,10 @@ public class SimilarMovieFlow {
      * @return  movie candidates
      */
     public static List<Movie> retrievalCandidatesByEmbedding(Movie movie, int size){
-        if (null == movie){
+        if (null == movie || null == movie.getEmb()){
             return null;
         }
-        double[] userEmbedding = DataManager.getInstance().getUserEmbedding(movie.getMovieId(), "item2vec");
-        if (null == userEmbedding){
-            return null;
-        }
+
         List<Movie> allCandidates = DataManager.getInstance().getMovies(10000, "rating");
         HashMap<Movie,Double> movieScoreMap = new HashMap<>();
         for (Movie candidate : allCandidates){
