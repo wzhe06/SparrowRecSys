@@ -1,6 +1,7 @@
 package com.wzhe.sparrowrecsys.online.datamanager;
 
 import com.wzhe.sparrowrecsys.online.model.Embedding;
+import redis.clients.jedis.Jedis;
 
 import java.io.File;
 import java.util.*;
@@ -12,11 +13,12 @@ import java.util.*;
 public class DataManager {
     //singleton instance
     static DataManager instance;
-
     HashMap<Integer, Movie> movieMap;
     HashMap<Integer, User> userMap;
     //genre reverse index for quick querying all movies in a genre
     HashMap<String, List<Movie>> genreReverseIndexMap;
+    final String REDIS_END_POINT = "localhost";
+    final int REDIS_PORT = 6379;
 
     private DataManager(){
         this.movieMap = new HashMap<>();
@@ -33,11 +35,11 @@ public class DataManager {
     }
 
     //load data from file system including movie, rating, link data and model data like embedding vectors.
-    public void loadData(String movieDataPath, String linkDataPath, String ratingDataPath, String movieEmbPath) throws Exception{
+    public void loadData(String movieDataPath, String linkDataPath, String ratingDataPath, String movieEmbPath, boolean embFromRedis, String embKey) throws Exception{
         loadMovieData(movieDataPath);
         loadLinkData(linkDataPath);
         loadRatingData(ratingDataPath);
-        loadMovieEmb(movieEmbPath);
+        loadMovieEmb(movieEmbPath, embFromRedis, embKey);
     }
 
     //load movie data from movies.csv
@@ -77,32 +79,52 @@ public class DataManager {
         System.out.println("Loading movie data completed. " + this.movieMap.size() + " movies in total.");
     }
 
+    private Embedding parseEmbStr(String embStr){
+        String[] embStrings = embStr.split("\\s");
+        Embedding emb = new Embedding();
+        for (String element : embStrings) {
+            emb.addDim(Float.parseFloat(element));
+        }
+        return emb;
+    }
+
     //load movie embedding
-    private void loadMovieEmb(String movieEmbPath) throws Exception{
-        System.out.println("Loading movie embedding from " + movieEmbPath + " ...");
-        int validEmbCount = 0;
-        try (Scanner scanner = new Scanner(new File(movieEmbPath))) {
-            while (scanner.hasNextLine()) {
-                String movieRawEmbData = scanner.nextLine();
-                String[] movieEmbData = movieRawEmbData.split(":");
-                if (movieEmbData.length == 2){
-                    Movie m = getMovieById(Integer.parseInt(movieEmbData[0]));
-                    if (null == m){
-                        continue;
+    private void loadMovieEmb(String movieEmbPath, boolean isFromRedis, String embKey) throws Exception{
+        if (!isFromRedis) {
+            System.out.println("Loading movie embedding from " + movieEmbPath + " ...");
+            int validEmbCount = 0;
+            try (Scanner scanner = new Scanner(new File(movieEmbPath))) {
+                while (scanner.hasNextLine()) {
+                    String movieRawEmbData = scanner.nextLine();
+                    String[] movieEmbData = movieRawEmbData.split(":");
+                    if (movieEmbData.length == 2) {
+                        Movie m = getMovieById(Integer.parseInt(movieEmbData[0]));
+                        if (null == m) {
+                            continue;
+                        }
+                        m.setEmb(parseEmbStr(movieEmbData[1]));
+                        validEmbCount++;
                     }
-
-                    String[] embStrings = movieEmbData[1].split("\\s");
-                    Embedding movieEmb = new Embedding();
-                    for (String element : embStrings){
-                        movieEmb.addDim(Float.parseFloat(element));
-                    }
-
-                    m.setEmb(movieEmb);
-                    validEmbCount++;
                 }
             }
+            System.out.println("Loading movie embedding completed. " + validEmbCount + " movie embeddings in total.");
+        }else{
+            System.out.println("Loading movie embedding from Redis ...");
+            Jedis redisClient = new Jedis(REDIS_END_POINT, REDIS_PORT);
+            Set<String> movieEmbKeys = redisClient.keys(embKey + "*");
+            int validEmbCount = 0;
+            for (String movieEmbKey : movieEmbKeys){
+                String movieId = movieEmbKey.split(":")[1];
+                Movie m = getMovieById(Integer.parseInt(movieId));
+                if (null == m) {
+                    continue;
+                }
+                m.setEmb(parseEmbStr(redisClient.get(movieEmbKey)));
+                validEmbCount++;
+            }
+            redisClient.close();
+            System.out.println("Loading movie embedding completed. " + validEmbCount + " movie embeddings in total.");
         }
-        System.out.println("Loading movie embedding completed. " + validEmbCount + " movie embeddings in total.");
     }
 
     //parse release year

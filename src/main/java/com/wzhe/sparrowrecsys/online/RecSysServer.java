@@ -52,7 +52,7 @@ public class RecSysServer {
         //load all the data to DataManager
         DataManager.getInstance().loadData(webRootUri.getPath() + "sampledata/movies.csv",
                 webRootUri.getPath() + "sampledata/links.csv",webRootUri.getPath() + "sampledata/ratings.csv",
-                webRootUri.getPath() + "sampledata/embedding.txt");
+                webRootUri.getPath() + "sampledata/embedding.txt", false, "i2vEmb");
 
         //create server context
         ServletContextHandler context = new ServletContextHandler();
@@ -70,6 +70,7 @@ public class RecSysServer {
 
         //set url handler
         server.setHandler(context);
+        System.out.printf("RecSys Server has started.");
 
         //start Server
         server.start();
