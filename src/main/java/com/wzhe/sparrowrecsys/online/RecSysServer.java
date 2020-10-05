@@ -70,7 +70,7 @@ public class RecSysServer {
 
         //set url handler
         server.setHandler(context);
-        System.out.printf("RecSys Server has started.");
+        System.out.print("RecSys Server has started.");
 
         //start Server
         server.start();
