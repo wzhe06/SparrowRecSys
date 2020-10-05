@@ -24,3 +24,5 @@ hs_err_pid*
 
 .idea
 data
+target/
+SparrowRecSys.iml
