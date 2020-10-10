@@ -12,7 +12,7 @@ import java.util.*;
 
 public class DataManager {
     //singleton instance
-    static DataManager instance;
+    private static volatile DataManager instance;
     HashMap<Integer, Movie> movieMap;
     HashMap<Integer, User> userMap;
     //genre reverse index for quick querying all movies in a genre
@@ -29,7 +29,11 @@ public class DataManager {
 
     public static DataManager getInstance(){
         if (null == instance){
-            instance = new DataManager();
+            synchronized (DataManager.class){
+                if (null == instance){
+                    instance = new DataManager();
+                }
+            }
         }
         return instance;
     }
