@@ -12,6 +12,7 @@ import scala.collection.mutable
 import scala.util.control.Breaks._
 import scala.util.Random
 import redis.clients.jedis.Jedis
+import redis.clients.jedis.params.SetParams
 
 object Embedding {
 
@@ -68,8 +69,11 @@ object Embedding {
 
     if (saveToRedis) {
       val redisClient = new Jedis(redisEndpoint, redisPort)
+      val params = SetParams.setParams()
+      //set ttl to 24hs
+      params.ex(60 * 60 * 24)
       for (movieId <- model.getVectors.keys) {
-        redisClient.set(redisKeyPrefix + ":" + movieId, model.getVectors(movieId).mkString(" "))
+        redisClient.set(redisKeyPrefix + ":" + movieId, model.getVectors(movieId).mkString(" "), params)
       }
       redisClient.close()
     }

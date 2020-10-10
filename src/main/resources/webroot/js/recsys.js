@@ -129,6 +129,57 @@ function addRelatedMovies(pageId, containerId, movieId, baseUrl){
     });
 }
 
+function addUserHistory(pageId, containerId, userId, baseUrl){
+
+    var rowDiv = '<div class="frontpage-section-top"> \
+                <div class="explore-header frontpage-section-header">\
+                 User Watched Movies \
+                </div>\
+                <div class="movie-row">\
+                 <div class="movie-row-bounds">\
+                  <div class="movie-row-scrollable" id="' + containerId +'" style="margin-left: 0px;">\
+                  </div>\
+                 </div>\
+                 <div class="clearfix"></div>\
+                </div>\
+               </div>'
+    $(pageId).prepend(rowDiv);
+
+    $.getJSON(baseUrl + "getuser?id="+userId, function(userObject){
+            $.each(userObject.ratings, function(i, rating){
+                $.getJSON(baseUrl + "getmovie?id="+rating.rating.movieId, function(movieObject){
+                    appendMovie2Row(containerId, movieObject.title, movieObject.movieId, movieObject.releaseYear, rating.rating.score, movieObject.ratingNumber, movieObject.genres, baseUrl);
+                });
+            });
+    });
+}
+
+function addRecForYou(pageId, containerId, userId, baseUrl){
+
+    var rowDiv = '<div class="frontpage-section-top"> \
+                <div class="explore-header frontpage-section-header">\
+                 Recommended For You \
+                </div>\
+                <div class="movie-row">\
+                 <div class="movie-row-bounds">\
+                  <div class="movie-row-scrollable" id="' + containerId +'" style="margin-left: 0px;">\
+                  </div>\
+                 </div>\
+                 <div class="clearfix"></div>\
+                </div>\
+               </div>'
+    $(pageId).prepend(rowDiv);
+
+    $.getJSON(baseUrl + "getuser?id="+userId, function(userObject){
+            $.each(userObject.ratings, function(i, rating){
+                $.getJSON(baseUrl + "getmovie?id="+rating.rating.movieId, function(movieObject){
+                    appendMovie2Row(containerId, movieObject.title, movieObject.movieId, movieObject.releaseYear, rating.rating.score, movieObject.ratingNumber, movieObject.genres, baseUrl);
+                });
+            });
+    });
+}
+
+
 function addMovieDetails(containerId, movieId, baseUrl) {
 
     $.getJSON(baseUrl + "getmovie?id="+movieId, function(movieObject){
@@ -142,6 +193,16 @@ function addMovieDetails(containerId, movieId, baseUrl) {
                 }
         });
 
+        var ratingUsers = "";
+                $.each(movieObject.topRatings, function(i, rating){
+                        ratingUsers += ('<span><a href="'+baseUrl+'user.html?id='+rating.rating.userId+'"><b>User'+rating.rating.userId+'</b></a>');
+                        if(i < movieObject.topRatings.length-1){
+                            ratingUsers+=", </span>";
+                        }else{
+                            ratingUsers+="</span>";
+                        }
+                });
+
         var movieDetails = '<div class="row movie-details-header movie-details-block">\
                                         <div class="col-md-2 header-backdrop">\
                                             <img alt="movie backdrop image" height="250" src="./posters/'+movieObject.movieId+'.jpg">\
@@ -152,6 +213,11 @@ function addMovieDetails(containerId, movieId, baseUrl) {
                                                     <div class="heading-and-data">\
                                                         <div class="movie-details-heading">Release Year</div>\
                                                         <div> '+movieObject.releaseYear+' </div>\
+                                                    </div>\
+                                                    <div class="heading-and-data">\
+                                                        <div class="movie-details-heading">Links</div>\
+                                                        <a target="_blank" href="http://www.imdb.com/title/tt'+movieObject.imdbId+'">imdb</a>,\
+                                                        <span><a target="_blank" href="http://www.themoviedb.org/movie/'+movieObject.tmdbId+'">tmdb</a></span>\
                                                     </div>\
                                                 </div>\
                                                 <div class="col-md-3">\
@@ -171,15 +237,58 @@ function addMovieDetails(containerId, movieId, baseUrl) {
                                                         '+genres+'\
                                                     </div>\
                                                     <div class="heading-and-data">\
-                                                        <div class="movie-details-heading">Links</div>\
-                                                        <a target="_blank" href="http://www.imdb.com/title/tt'+movieObject.imdbId+'">imdb</a>,\
-                                                        <span><a target="_blank" href="http://www.themoviedb.org/movie/'+movieObject.tmdbId+'">tmdb</a></span>\
+                                                        <div class="movie-details-heading">Who likes the movie most</div>\
+                                                        '+ratingUsers+'\
                                                     </div>\
                                                 </div>\
                                             </div>\
                                         </div>\
                                     </div>'
         $("#"+containerId).prepend(movieDetails);
+    });
+};
+
+function addUserDetails(containerId, userId, baseUrl) {
+
+    $.getJSON(baseUrl + "getuser?id="+userId, function(userObject){
+        var userDetails = '<div class="row movie-details-header movie-details-block">\
+                                        <div class="col-md-2 header-backdrop">\
+                                            <img alt="movie backdrop image" height="200" src="./images/avatar/'+userObject.userId%10+'.png">\
+                                        </div>\
+                                        <div class="col-md-9"><h1 class="movie-title"> User'+userObject.userId+' </h1>\
+                                            <div class="row movie-highlights">\
+                                                <div class="col-md-2">\
+                                                    <div class="heading-and-data">\
+                                                        <div class="movie-details-heading">#Watched Movies</div>\
+                                                        <div> '+userObject.ratingCount+' </div>\
+                                                    </div>\
+                                                    <div class="heading-and-data">\
+                                                        <div class="movie-details-heading"> Average Rating Score</div>\
+                                                        <div> '+userObject.averageRating.toPrecision(2)+' stars\
+                                                        </div>\
+                                                    </div>\
+                                                </div>\
+                                                <div class="col-md-3">\
+                                                    <div class="heading-and-data">\
+                                                        <div class="movie-details-heading"> Highest Rating Score</div>\
+                                                        <div> '+userObject.highestRating+' stars</div>\
+                                                    </div>\
+                                                    <div class="heading-and-data">\
+                                                        <div class="movie-details-heading"> Lowest Rating Score</div>\
+                                                        <div> '+userObject.lowestRating+' stars\
+                                                        </div>\
+                                                    </div>\
+                                                </div>\
+                                                <div class="col-md-6">\
+                                                    <div class="heading-and-data">\
+                                                        <div class="movie-details-heading">Favourite Genres</div>\
+                                                        '+'action'+'\
+                                                    </div>\
+                                                </div>\
+                                            </div>\
+                                        </div>\
+                                    </div>'
+        $("#"+containerId).prepend(userDetails);
     });
 };
 

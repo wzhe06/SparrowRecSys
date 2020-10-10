@@ -1,5 +1,7 @@
 package com.wzhe.sparrowrecsys.online.datamanager;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -8,6 +10,12 @@ import java.util.List;
  */
 public class User {
     int userId;
+    double averageRating = 0;
+    double highestRating = 0;
+    double lowestRating = 5.0;
+    int ratingCount = 0;
+
+    @JsonSerialize(using = RatingListSerializer.class)
     List<Rating> ratings;
 
     public User(){
@@ -32,5 +40,47 @@ public class User {
 
     public void addRating(Rating rating) {
         this.ratings.add(rating);
+        this.averageRating = (this.averageRating * ratingCount + rating.getScore()) / (ratingCount + 1);
+        if (rating.getScore() > highestRating){
+            highestRating = rating.getScore();
+        }
+
+        if (rating.getScore() < lowestRating){
+            lowestRating = rating.getScore();
+        }
+
+        ratingCount++;
+    }
+
+    public double getAverageRating() {
+        return averageRating;
+    }
+
+    public void setAverageRating(double averageRating) {
+        this.averageRating = averageRating;
+    }
+
+    public double getHighestRating() {
+        return highestRating;
+    }
+
+    public void setHighestRating(double highestRating) {
+        this.highestRating = highestRating;
+    }
+
+    public double getLowestRating() {
+        return lowestRating;
+    }
+
+    public void setLowestRating(double lowestRating) {
+        this.lowestRating = lowestRating;
+    }
+
+    public int getRatingCount() {
+        return ratingCount;
+    }
+
+    public void setRatingCount(int ratingCount) {
+        this.ratingCount = ratingCount;
     }
 }

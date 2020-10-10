@@ -1,9 +1,11 @@
 package com.wzhe.sparrowrecsys.online.datamanager;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.wzhe.sparrowrecsys.online.model.Embedding;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -29,11 +31,17 @@ public class Movie {
     @JsonIgnore
     List<Rating> ratings;
 
+    final int TOP_RATING_SIZE = 10;
+
+    @JsonSerialize(using = RatingListSerializer.class)
+    List<Rating> topRatings;
+
     public Movie() {
         ratingNumber = 0;
         averageRating = 0;
         this.genres = new ArrayList<>();
         this.ratings = new ArrayList<>();
+        this.topRatings = new LinkedList<>();
         this.emb = null;
     }
 
@@ -81,6 +89,25 @@ public class Movie {
         averageRating = (averageRating * ratingNumber + rating.getScore()) / (ratingNumber+1);
         ratingNumber++;
         this.ratings.add(rating);
+        addTopRating(rating);
+    }
+
+    public void addTopRating(Rating rating){
+        if (this.topRatings.isEmpty()){
+            this.topRatings.add(rating);
+        }else{
+            int index = 0;
+            for (Rating topRating : this.topRatings){
+                if (topRating.getScore() >= rating.getScore()){
+                    break;
+                }
+                index ++;
+            }
+            topRatings.add(index, rating);
+            if (topRatings.size() > TOP_RATING_SIZE) {
+                topRatings.remove(0);
+            }
+        }
     }
 
     public String getImdbId() {
