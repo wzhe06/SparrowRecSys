@@ -2,6 +2,7 @@ package com.wzhe.sparrowrecsys.online.datamanager;
 
 import com.wzhe.sparrowrecsys.online.model.Embedding;
 import com.wzhe.sparrowrecsys.online.util.Config;
+import com.wzhe.sparrowrecsys.online.util.Utility;
 import redis.clients.jedis.Jedis;
 
 import java.io.File;
@@ -18,8 +19,6 @@ public class DataManager {
     HashMap<Integer, User> userMap;
     //genre reverse index for quick querying all movies in a genre
     HashMap<String, List<Movie>> genreReverseIndexMap;
-    final String REDIS_END_POINT = "localhost";
-    final int REDIS_PORT = 6379;
 
     private DataManager(){
         this.movieMap = new HashMap<>();
@@ -40,12 +39,12 @@ public class DataManager {
     }
 
     //load data from file system including movie, rating, link data and model data like embedding vectors.
-    public void loadData(String dataSource, String movieDataPath, String linkDataPath, String ratingDataPath, String movieEmbPath, String userEmbPath, String movieRedisKey, String userRedisKey) throws Exception{
+    public void loadData(String movieDataPath, String linkDataPath, String ratingDataPath, String movieEmbPath, String userEmbPath, String movieRedisKey, String userRedisKey) throws Exception{
         loadMovieData(movieDataPath);
         loadLinkData(linkDataPath);
         loadRatingData(ratingDataPath);
-        loadMovieEmb(movieEmbPath, dataSource, movieRedisKey);
-        loadUserEmb(userEmbPath, dataSource, userRedisKey);
+        loadMovieEmb(movieEmbPath, movieRedisKey);
+        loadUserEmb(userEmbPath, userRedisKey);
     }
 
     //load movie data from movies.csv
@@ -85,18 +84,9 @@ public class DataManager {
         System.out.println("Loading movie data completed. " + this.movieMap.size() + " movies in total.");
     }
 
-    private Embedding parseEmbStr(String embStr){
-        String[] embStrings = embStr.split("\\s");
-        Embedding emb = new Embedding();
-        for (String element : embStrings) {
-            emb.addDim(Float.parseFloat(element));
-        }
-        return emb;
-    }
-
     //load movie embedding
-    private void loadMovieEmb(String movieEmbPath, String dataSource, String embKey) throws Exception{
-        if (dataSource.equals(Config.DATA_SOURCE_FILE)) {
+    private void loadMovieEmb(String movieEmbPath, String embKey) throws Exception{
+        if (Config.EMB_DATA_SOURCE.equals(Config.DATA_SOURCE_FILE)) {
             System.out.println("Loading movie embedding from " + movieEmbPath + " ...");
             int validEmbCount = 0;
             try (Scanner scanner = new Scanner(new File(movieEmbPath))) {
@@ -108,7 +98,7 @@ public class DataManager {
                         if (null == m) {
                             continue;
                         }
-                        m.setEmb(parseEmbStr(movieEmbData[1]));
+                        m.setEmb(Utility.parseEmbStr(movieEmbData[1]));
                         validEmbCount++;
                     }
                 }
@@ -116,8 +106,7 @@ public class DataManager {
             System.out.println("Loading movie embedding completed. " + validEmbCount + " movie embeddings in total.");
         }else{
             System.out.println("Loading movie embedding from Redis ...");
-            Jedis redisClient = new Jedis(REDIS_END_POINT, REDIS_PORT);
-            Set<String> movieEmbKeys = redisClient.keys(embKey + "*");
+            Set<String> movieEmbKeys = RedisClient.getInstance().keys(embKey + "*");
             int validEmbCount = 0;
             for (String movieEmbKey : movieEmbKeys){
                 String movieId = movieEmbKey.split(":")[1];
@@ -125,17 +114,16 @@ public class DataManager {
                 if (null == m) {
                     continue;
                 }
-                m.setEmb(parseEmbStr(redisClient.get(movieEmbKey)));
+                m.setEmb(Utility.parseEmbStr(RedisClient.getInstance().get(movieEmbKey)));
                 validEmbCount++;
             }
-            redisClient.close();
             System.out.println("Loading movie embedding completed. " + validEmbCount + " movie embeddings in total.");
         }
     }
 
     //load user embedding
-    private void loadUserEmb(String userEmbPath, String dataSource, String embKey) throws Exception{
-        if (dataSource.equals(Config.DATA_SOURCE_FILE)) {
+    private void loadUserEmb(String userEmbPath, String embKey) throws Exception{
+        if (Config.EMB_DATA_SOURCE.equals(Config.DATA_SOURCE_FILE)) {
             System.out.println("Loading user embedding from " + userEmbPath + " ...");
             int validEmbCount = 0;
             try (Scanner scanner = new Scanner(new File(userEmbPath))) {
@@ -147,7 +135,7 @@ public class DataManager {
                         if (null == u) {
                             continue;
                         }
-                        u.setEmb(parseEmbStr(userEmbData[1]));
+                        u.setEmb(Utility.parseEmbStr(userEmbData[1]));
                         validEmbCount++;
                     }
                 }

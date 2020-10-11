@@ -48,8 +48,7 @@ public class RecSysServer {
         System.out.printf("Web Root URI: %s%n", webRootUri.getPath());
 
         //load all the data to DataManager
-        String dataSource = Config.DATA_SOURCE_FILE;
-        DataManager.getInstance().loadData(dataSource, webRootUri.getPath() + "sampledata/movies.csv",
+        DataManager.getInstance().loadData(webRootUri.getPath() + "sampledata/movies.csv",
                 webRootUri.getPath() + "sampledata/links.csv",webRootUri.getPath() + "sampledata/ratings.csv",
                 webRootUri.getPath() + "modeldata/item2vecEmb.csv",
                 webRootUri.getPath() + "modeldata/userEmb.csv",

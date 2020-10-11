@@ -2,7 +2,10 @@ package com.wzhe.sparrowrecsys.online.recprocess;
 
 import com.wzhe.sparrowrecsys.online.datamanager.DataManager;
 import com.wzhe.sparrowrecsys.online.datamanager.Movie;
+import com.wzhe.sparrowrecsys.online.datamanager.RedisClient;
 import com.wzhe.sparrowrecsys.online.datamanager.User;
+import com.wzhe.sparrowrecsys.online.util.Config;
+import com.wzhe.sparrowrecsys.online.util.Utility;
 
 import java.util.*;
 
@@ -26,6 +29,16 @@ public class RecForYouProcess {
         }
         final int CANDIDATE_SIZE = 800;
         List<Movie> candidates = DataManager.getInstance().getMovies(CANDIDATE_SIZE, "rating");
+
+        //load user emb from redis if data source is redis
+        if (Config.EMB_DATA_SOURCE.equals(Config.DATA_SOURCE_REDIS)){
+            String userEmbKey = "uEmb:" + userId;
+            String userEmb = RedisClient.getInstance().get(userEmbKey);
+            if (null != userEmb){
+                user.setEmb(Utility.parseEmbStr(userEmb));
+            }
+        }
+
         List<Movie> rankedList = ranker(user, candidates, model);
 
         if (rankedList.size() > size){
