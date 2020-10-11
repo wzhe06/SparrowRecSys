@@ -3,16 +3,19 @@ import java.io.{BufferedWriter, File, FileWriter}
 
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
-import org.apache.spark.mllib.feature.Word2Vec
+import org.apache.spark.mllib.feature.{Word2Vec, Word2VecModel}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{Row, SparkSession}
 import org.apache.spark.sql.expressions.UserDefinedFunction
 import org.apache.spark.sql.functions._
+
 import scala.collection.mutable
 import scala.util.control.Breaks._
 import scala.util.Random
 import redis.clients.jedis.Jedis
 import redis.clients.jedis.params.SetParams
+
+import scala.collection.mutable.ArrayBuffer
 
 object Embedding {
 
@@ -45,9 +48,57 @@ object Embedding {
     userSeq.select("movieIdStr").rdd.map(r => r.getAs[String]("movieIdStr").split(" ").toSeq)
   }
 
-  def trainItem2vec(samples : RDD[Seq[String]], embOutputFilename:String, saveToRedis:Boolean, redisKeyPrefix:String): Unit = {
+  def generateUserEmb(sparkSession: SparkSession, rawSampleDataPath: String, word2VecModel: Word2VecModel, embLength:Int, embOutputFilename:String, saveToRedis:Boolean, redisKeyPrefix:String): Unit ={
+    val ratingsResourcesPath = this.getClass.getResource(rawSampleDataPath)
+    val ratingSamples = sparkSession.read.format("csv").option("header", "true").load(ratingsResourcesPath.getPath)
+    ratingSamples.show(10, false)
+
+    val userEmbeddings = new ArrayBuffer[(String, Array[Float])]()
+
+    ratingSamples.collect().groupBy(_.getAs[String]("userId"))
+      .foreach(user => {
+        val userId = user._1
+        var userEmb = new Array[Float](embLength)
+
+        userEmb = user._2.foldRight[Array[Float]](userEmb)((row, newEmb) => {
+          val movieId = row.getAs[String]("movieId")
+          val movieEmb = word2VecModel.getVectors.get(movieId)
+          if(movieEmb.isDefined){
+            newEmb.zip(movieEmb.get).map { case (x, y) => x + y }
+          }else{
+            newEmb
+          }
+        })
+        userEmbeddings.append((userId,userEmb))
+      })
+
+
+
+    val embFolderPath = this.getClass.getResource("/webroot/modeldata/")
+    val file = new File(embFolderPath.getPath + embOutputFilename)
+    val bw = new BufferedWriter(new FileWriter(file))
+
+    for (userEmb <- userEmbeddings) {
+      bw.write(userEmb._1 + ":" + userEmb._2.mkString(" ") + "\n")
+    }
+    bw.close()
+
+    if (saveToRedis) {
+      val redisClient = new Jedis(redisEndpoint, redisPort)
+      val params = SetParams.setParams()
+      //set ttl to 24hs
+      params.ex(60 * 60 * 24)
+
+      for (userEmb <- userEmbeddings) {
+        redisClient.set(redisKeyPrefix + ":" + userEmb._1, userEmb._2.mkString(" "), params)
+      }
+      redisClient.close()
+    }
+  }
+
+  def trainItem2vec(samples : RDD[Seq[String]], embLength:Int, embOutputFilename:String, saveToRedis:Boolean, redisKeyPrefix:String): Word2VecModel = {
     val word2vec = new Word2Vec()
-      .setVectorSize(10)
+      .setVectorSize(embLength)
       .setWindowSize(5)
       .setNumIterations(10)
 
@@ -77,6 +128,8 @@ object Embedding {
       }
       redisClient.close()
     }
+
+    model
   }
 
   def oneRandomWalk(transitionMatrix : mutable.Map[String, mutable.Map[String, Double]], itemDistribution : mutable.Map[String, Double], sampleLength:Int): Seq[String] ={
@@ -114,7 +167,6 @@ object Embedding {
     }}
     Seq(sample.toList : _*)
   }
-
 
   def randomWalk(transitionMatrix : mutable.Map[String, mutable.Map[String, Double]], itemDistribution : mutable.Map[String, Double], sampleCount:Int, sampleLength:Int): Seq[Seq[String]] ={
     val samples = mutable.ListBuffer[Seq[String]]()
@@ -168,7 +220,7 @@ object Embedding {
     (transitionMatrix, itemDistribution)
   }
 
-  def graphEmb(samples : RDD[Seq[String]], sparkSession: SparkSession, embOutputFilename:String, saveToRedis:Boolean, redisKeyPrefix:String): Unit ={
+  def graphEmb(samples : RDD[Seq[String]], sparkSession: SparkSession, embLength:Int, embOutputFilename:String, saveToRedis:Boolean, redisKeyPrefix:String): Word2VecModel ={
     val transitionMatrixAndItemDis = generateTransitionMatrix(samples)
 
     println(transitionMatrixAndItemDis._1.size)
@@ -179,7 +231,7 @@ object Embedding {
     val newSamples = randomWalk(transitionMatrixAndItemDis._1, transitionMatrixAndItemDis._2, sampleCount, sampleLength)
 
     val rddSamples = sparkSession.sparkContext.parallelize(newSamples)
-    trainItem2vec(rddSamples, embOutputFilename, saveToRedis, redisKeyPrefix)
+    trainItem2vec(rddSamples, embLength, embOutputFilename, saveToRedis, redisKeyPrefix)
   }
 
   def main(args: Array[String]): Unit = {
@@ -193,9 +245,11 @@ object Embedding {
     val spark = SparkSession.builder.config(conf).getOrCreate()
 
     val rawSampleDataPath = "/webroot/sampledata/ratings.csv"
+    val embLength = 10
 
     val samples = processItemSequence(spark, rawSampleDataPath)
-    trainItem2vec(samples, "item2vecEmb.csv", saveToRedis = true, "i2vEmb")
-    graphEmb(samples, spark, "item2vecEmb.csv", saveToRedis = true, "graphEmb")
+    val model = trainItem2vec(samples, embLength, "item2vecEmb.csv", saveToRedis = false, "i2vEmb")
+    //graphEmb(samples, spark, embLength, "itemGraphEmb.csv", saveToRedis = true, "graphEmb")
+    generateUserEmb(spark, rawSampleDataPath, model, embLength, "userEmb.csv", saveToRedis = false, "uEmb")
   }
 }

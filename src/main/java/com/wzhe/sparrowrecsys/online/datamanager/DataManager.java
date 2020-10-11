@@ -1,6 +1,7 @@
 package com.wzhe.sparrowrecsys.online.datamanager;
 
 import com.wzhe.sparrowrecsys.online.model.Embedding;
+import com.wzhe.sparrowrecsys.online.util.Config;
 import redis.clients.jedis.Jedis;
 
 import java.io.File;
@@ -39,11 +40,12 @@ public class DataManager {
     }
 
     //load data from file system including movie, rating, link data and model data like embedding vectors.
-    public void loadData(String movieDataPath, String linkDataPath, String ratingDataPath, String movieEmbPath, boolean embFromRedis, String embKey) throws Exception{
+    public void loadData(String dataSource, String movieDataPath, String linkDataPath, String ratingDataPath, String movieEmbPath, String userEmbPath, String movieRedisKey, String userRedisKey) throws Exception{
         loadMovieData(movieDataPath);
         loadLinkData(linkDataPath);
         loadRatingData(ratingDataPath);
-        loadMovieEmb(movieEmbPath, embFromRedis, embKey);
+        loadMovieEmb(movieEmbPath, dataSource, movieRedisKey);
+        loadUserEmb(userEmbPath, dataSource, userRedisKey);
     }
 
     //load movie data from movies.csv
@@ -93,8 +95,8 @@ public class DataManager {
     }
 
     //load movie embedding
-    private void loadMovieEmb(String movieEmbPath, boolean isFromRedis, String embKey) throws Exception{
-        if (!isFromRedis) {
+    private void loadMovieEmb(String movieEmbPath, String dataSource, String embKey) throws Exception{
+        if (dataSource.equals(Config.DATA_SOURCE_FILE)) {
             System.out.println("Loading movie embedding from " + movieEmbPath + " ...");
             int validEmbCount = 0;
             try (Scanner scanner = new Scanner(new File(movieEmbPath))) {
@@ -128,6 +130,29 @@ public class DataManager {
             }
             redisClient.close();
             System.out.println("Loading movie embedding completed. " + validEmbCount + " movie embeddings in total.");
+        }
+    }
+
+    //load user embedding
+    private void loadUserEmb(String userEmbPath, String dataSource, String embKey) throws Exception{
+        if (dataSource.equals(Config.DATA_SOURCE_FILE)) {
+            System.out.println("Loading user embedding from " + userEmbPath + " ...");
+            int validEmbCount = 0;
+            try (Scanner scanner = new Scanner(new File(userEmbPath))) {
+                while (scanner.hasNextLine()) {
+                    String userRawEmbData = scanner.nextLine();
+                    String[] userEmbData = userRawEmbData.split(":");
+                    if (userEmbData.length == 2) {
+                        User u = getUserById(Integer.parseInt(userEmbData[0]));
+                        if (null == u) {
+                            continue;
+                        }
+                        u.setEmb(parseEmbStr(userEmbData[1]));
+                        validEmbCount++;
+                    }
+                }
+            }
+            System.out.println("Loading user embedding completed. " + validEmbCount + " user embeddings in total.");
         }
     }
 

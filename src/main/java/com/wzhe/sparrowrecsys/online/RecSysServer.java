@@ -5,6 +5,7 @@ import com.wzhe.sparrowrecsys.online.service.MovieService;
 import com.wzhe.sparrowrecsys.online.service.RecommendationService;
 import com.wzhe.sparrowrecsys.online.service.SimilarMovieService;
 import com.wzhe.sparrowrecsys.online.service.UserService;
+import com.wzhe.sparrowrecsys.online.util.Config;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.ServletContextHandler;
@@ -32,7 +33,7 @@ public class RecSysServer {
         int port = DEFAULT_PORT;
         try {
             port = Integer.parseInt(System.getenv("PORT"));
-        } catch (NumberFormatException ex) {}
+        } catch (NumberFormatException ignored) {}
 
         //set ip and port number
         InetSocketAddress inetAddress = new InetSocketAddress("0.0.0.0", port);
@@ -50,9 +51,12 @@ public class RecSysServer {
         System.out.printf("Web Root URI: %s%n", webRootUri.getPath());
 
         //load all the data to DataManager
-        DataManager.getInstance().loadData(webRootUri.getPath() + "sampledata/movies.csv",
+        String dataSource = Config.DATA_SOURCE_FILE;
+        DataManager.getInstance().loadData(dataSource, webRootUri.getPath() + "sampledata/movies.csv",
                 webRootUri.getPath() + "sampledata/links.csv",webRootUri.getPath() + "sampledata/ratings.csv",
-                webRootUri.getPath() + "sampledata/embedding.txt", false, "i2vEmb");
+                webRootUri.getPath() + "modeldata/item2vecEmb.csv",
+                webRootUri.getPath() + "modeldata/userEmb.csv",
+                "i2vEmb", "uEmb");
 
         //create server context
         ServletContextHandler context = new ServletContextHandler();

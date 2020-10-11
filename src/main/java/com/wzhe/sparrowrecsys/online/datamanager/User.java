@@ -1,6 +1,8 @@
 package com.wzhe.sparrowrecsys.online.datamanager;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.wzhe.sparrowrecsys.online.model.Embedding;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,6 +19,10 @@ public class User {
 
     @JsonSerialize(using = RatingListSerializer.class)
     List<Rating> ratings;
+
+    //embedding of the movie
+    @JsonIgnore
+    Embedding emb;
 
     public User(){
         this.ratings = new ArrayList<>();
@@ -82,5 +88,13 @@ public class User {
 
     public void setRatingCount(int ratingCount) {
         this.ratingCount = ratingCount;
+    }
+
+    public Embedding getEmb() {
+        return emb;
+    }
+
+    public void setEmb(Embedding emb) {
+        this.emb = emb;
     }
 }
