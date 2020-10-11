@@ -1,14 +1,14 @@
-package com.wzhe.sparrowrecsys.online.recflow;
+package com.wzhe.sparrowrecsys.online.recprocess;
 
 import com.wzhe.sparrowrecsys.online.datamanager.DataManager;
 import com.wzhe.sparrowrecsys.online.datamanager.Movie;
 import java.util.*;
 
 /**
- * Recommendation flow of similar movies
+ * Recommendation process of similar movies
  */
 
-public class SimilarMovieFlow {
+public class SimilarMovieProcess {
 
     /**
      * get recommendation movie list

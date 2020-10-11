@@ -1,10 +1,7 @@
 package com.wzhe.sparrowrecsys.online;
 
 import com.wzhe.sparrowrecsys.online.datamanager.DataManager;
-import com.wzhe.sparrowrecsys.online.service.MovieService;
-import com.wzhe.sparrowrecsys.online.service.RecommendationService;
-import com.wzhe.sparrowrecsys.online.service.SimilarMovieService;
-import com.wzhe.sparrowrecsys.online.service.UserService;
+import com.wzhe.sparrowrecsys.online.service.*;
 import com.wzhe.sparrowrecsys.online.util.Config;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.DefaultServlet;
@@ -71,6 +68,7 @@ public class RecSysServer {
         context.addServlet(new ServletHolder(new UserService()), "/getuser");
         context.addServlet(new ServletHolder(new SimilarMovieService()), "/getsimilarmovie");
         context.addServlet(new ServletHolder(new RecommendationService()), "/getrecommendation");
+        context.addServlet(new ServletHolder(new RecForYouService()), "/getrecforyou");
 
         //set url handler
         server.setHandler(context);

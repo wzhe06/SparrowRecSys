@@ -26,6 +26,7 @@ public class User {
 
     public User(){
         this.ratings = new ArrayList<>();
+        this.emb = null;
     }
 
     public int getUserId() {
