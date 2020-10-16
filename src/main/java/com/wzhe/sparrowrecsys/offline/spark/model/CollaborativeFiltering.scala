@@ -3,7 +3,7 @@ package com.wzhe.sparrowrecsys.offline.spark.model
 import org.apache.spark.SparkConf
 import org.apache.spark.ml.evaluation.RegressionEvaluator
 import org.apache.spark.ml.recommendation.ALS
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions._
 
 object CollaborativeFiltering {
@@ -32,12 +32,16 @@ object CollaborativeFiltering {
       .setUserCol("userIdInt")
       .setItemCol("movieIdInt")
       .setRatingCol("ratingFloat")
+
     val model = als.fit(training)
 
     // Evaluate the model by computing the RMSE on the test data
     // Note we set cold start strategy to 'drop' to ensure we don't get NaN evaluation metrics
     model.setColdStartStrategy("drop")
     val predictions = model.transform(test)
+
+    model.itemFactors.show(10, truncate = false)
+    model.userFactors.show(10, truncate = false)
 
     val evaluator = new RegressionEvaluator()
       .setMetricName("rmse")
