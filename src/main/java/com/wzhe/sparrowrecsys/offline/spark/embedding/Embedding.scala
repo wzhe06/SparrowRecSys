@@ -1,21 +1,23 @@
-package com.wzhe.sparrowrecsys.offline.spark.featureeng
+package com.wzhe.sparrowrecsys.offline.spark.embedding
+
 import java.io.{BufferedWriter, File, FileWriter}
 
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
+import org.apache.spark.ml.feature.BucketedRandomProjectionLSH
+import org.apache.spark.ml.linalg.Vectors
 import org.apache.spark.mllib.feature.{Word2Vec, Word2VecModel}
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{Row, SparkSession}
 import org.apache.spark.sql.expressions.UserDefinedFunction
 import org.apache.spark.sql.functions._
-
-import scala.collection.mutable
-import scala.util.control.Breaks._
-import scala.util.Random
+import org.apache.spark.sql.{Row, SparkSession}
 import redis.clients.jedis.Jedis
 import redis.clients.jedis.params.SetParams
 
+import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
+import scala.util.Random
+import scala.util.control.Breaks.{break, breakable}
 
 object Embedding {
 
@@ -96,7 +98,7 @@ object Embedding {
     }
   }
 
-  def trainItem2vec(samples : RDD[Seq[String]], embLength:Int, embOutputFilename:String, saveToRedis:Boolean, redisKeyPrefix:String): Word2VecModel = {
+  def trainItem2vec(sparkSession: SparkSession, samples : RDD[Seq[String]], embLength:Int, embOutputFilename:String, saveToRedis:Boolean, redisKeyPrefix:String): Word2VecModel = {
     val word2vec = new Word2Vec()
       .setVectorSize(embLength)
       .setWindowSize(5)
@@ -129,6 +131,7 @@ object Embedding {
       redisClient.close()
     }
 
+    embeddingLSH(sparkSession, model.getVectors)
     model
   }
 
@@ -220,6 +223,26 @@ object Embedding {
     (transitionMatrix, itemDistribution)
   }
 
+  def embeddingLSH(spark:SparkSession, movieEmbMap:Map[String, Array[Float]]): Unit ={
+
+    val movieEmbSeq = movieEmbMap.toSeq.map(item => (item._1, Vectors.dense(item._2.map(f => f.toDouble))))
+    val movieEmbDF = spark.createDataFrame(movieEmbSeq).toDF("movieId", "emb")
+
+    //LSH bucket model
+    val bucketProjectionLSH = new BucketedRandomProjectionLSH()
+      .setBucketLength(0.1)
+      .setNumHashTables(2)
+      .setInputCol("emb")
+      .setOutputCol("bucketId")
+
+    val bucketModel = bucketProjectionLSH.fit(movieEmbDF)
+    val embBucketResult = bucketModel.transform(movieEmbDF)
+    println("movieId, emb, bucketId schema:")
+    embBucketResult.printSchema()
+    println("movieId, emb, bucketId data result:")
+    embBucketResult.where(col("movieId") === "620" || col("movieId") === "989" || col("movieId") === "997" ).show(100, truncate = false)
+  }
+
   def graphEmb(samples : RDD[Seq[String]], sparkSession: SparkSession, embLength:Int, embOutputFilename:String, saveToRedis:Boolean, redisKeyPrefix:String): Word2VecModel ={
     val transitionMatrixAndItemDis = generateTransitionMatrix(samples)
 
@@ -231,7 +254,7 @@ object Embedding {
     val newSamples = randomWalk(transitionMatrixAndItemDis._1, transitionMatrixAndItemDis._2, sampleCount, sampleLength)
 
     val rddSamples = sparkSession.sparkContext.parallelize(newSamples)
-    trainItem2vec(rddSamples, embLength, embOutputFilename, saveToRedis, redisKeyPrefix)
+    trainItem2vec(sparkSession, rddSamples, embLength, embOutputFilename, saveToRedis, redisKeyPrefix)
   }
 
   def main(args: Array[String]): Unit = {
@@ -248,7 +271,7 @@ object Embedding {
     val embLength = 10
 
     val samples = processItemSequence(spark, rawSampleDataPath)
-    val model = trainItem2vec(samples, embLength, "item2vecEmb.csv", saveToRedis = false, "i2vEmb")
+    val model = trainItem2vec(spark, samples, embLength, "item2vecEmb.csv", saveToRedis = false, "i2vEmb")
     //graphEmb(samples, spark, embLength, "itemGraphEmb.csv", saveToRedis = true, "graphEmb")
     generateUserEmb(spark, rawSampleDataPath, model, embLength, "userEmb.csv", saveToRedis = false, "uEmb")
   }
