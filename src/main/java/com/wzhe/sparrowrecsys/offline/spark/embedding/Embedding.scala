@@ -231,7 +231,7 @@ object Embedding {
     //LSH bucket model
     val bucketProjectionLSH = new BucketedRandomProjectionLSH()
       .setBucketLength(0.1)
-      .setNumHashTables(2)
+      .setNumHashTables(3)
       .setInputCol("emb")
       .setOutputCol("bucketId")
 
@@ -240,7 +240,11 @@ object Embedding {
     println("movieId, emb, bucketId schema:")
     embBucketResult.printSchema()
     println("movieId, emb, bucketId data result:")
-    embBucketResult.where(col("movieId") === "620" || col("movieId") === "989" || col("movieId") === "997" ).show(100, truncate = false)
+    embBucketResult.show(10, truncate = false)
+
+    println("Approximately searching for 5 nearest neighbors of the sample embedding:")
+    val sampleEmb = Vectors.dense(0.795,0.583,1.120,0.850,0.174,-0.839,-0.0633,0.249,0.673,-0.237)
+    bucketModel.approxNearestNeighbors(movieEmbDF, sampleEmb, 5).show(truncate = false)
   }
 
   def graphEmb(samples : RDD[Seq[String]], sparkSession: SparkSession, embLength:Int, embOutputFilename:String, saveToRedis:Boolean, redisKeyPrefix:String): Word2VecModel ={
@@ -273,6 +277,6 @@ object Embedding {
     val samples = processItemSequence(spark, rawSampleDataPath)
     val model = trainItem2vec(spark, samples, embLength, "item2vecEmb.csv", saveToRedis = false, "i2vEmb")
     //graphEmb(samples, spark, embLength, "itemGraphEmb.csv", saveToRedis = true, "graphEmb")
-    generateUserEmb(spark, rawSampleDataPath, model, embLength, "userEmb.csv", saveToRedis = false, "uEmb")
+    //generateUserEmb(spark, rawSampleDataPath, model, embLength, "userEmb.csv", saveToRedis = false, "uEmb")
   }
 }
