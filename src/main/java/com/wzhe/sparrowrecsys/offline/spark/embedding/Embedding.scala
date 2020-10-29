@@ -10,7 +10,7 @@ import org.apache.spark.mllib.feature.{Word2Vec, Word2VecModel}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.expressions.UserDefinedFunction
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.{Row, SparkSession}
+import org.apache.spark.sql.{DatasetHolder, Row, SparkSession}
 import redis.clients.jedis.Jedis
 import redis.clients.jedis.params.SetParams
 
@@ -179,6 +179,82 @@ object Embedding {
     Seq(samples.toList : _*)
   }
 
+  def oneNode2vec(transitionMatrix : mutable.Map[String, mutable.Map[String, Double]], itemDistribution : mutable.Map[String, Double], sampleLength:Int) : Seq[String] = {
+    val sample = mutable.ListBuffer[String]()
+    val p = 0.1F // 返回参数
+    val q = 0.2F // 进出参数
+
+    //pick the first element as nodeT
+    val randomDouble = Random.nextDouble()
+    var firstItem = ""
+    var accumulateProb:Double = 0D
+
+    breakable { for ((item, prob) <- itemDistribution) {
+      accumulateProb += prob
+      if (accumulateProb >= randomDouble){
+        firstItem = item
+        break
+      }
+    }}
+
+    sample.append(firstItem)
+    var curElement = firstItem
+    // nodeT始终是curElement的前一个值
+    var nodeT = curElement
+    breakable { for(i <- 1 until sampleLength) {
+      if (!itemDistribution.contains(curElement) || !transitionMatrix.contains(curElement)){
+        break
+      }
+
+      val probDistribution = transitionMatrix(curElement)
+      val probDistributionNew = mutable.Map[String, Double]()
+      val randomDouble = Random.nextDouble()
+      if (i == 1) {
+        // 第一步时，curElement和nodeT是同一个点，所以要保持nodeT不动，curElement前进一步
+        breakable { for ((item, prob) <- probDistribution) {
+          if (randomDouble >= prob){
+            curElement = item
+            break
+          }
+        }}
+      } else {
+        // 首先根据nodeT得到和nodeT相连的节点
+        val keysT = transitionMatrix(nodeT).keySet
+        // 利用keysT计算probDistributionNew
+        for ((item, prob) <- probDistribution) {
+          if (keysT.contains(item)) {
+            probDistributionNew.put(item, prob)
+          } else {
+            probDistributionNew.put(item, prob*(1/q))
+          }
+        }
+        // 计算返回nodeT的概率
+        if(probDistribution.contains(nodeT)){
+          probDistributionNew.put(nodeT, probDistribution(nodeT)*(1/p))
+        }
+        // 在选择下一个curElement之前，先将之前的curElement存储在nodeT中
+        nodeT = curElement
+
+        breakable { for ((item, prob) <- probDistributionNew) {
+          if (randomDouble >= prob){
+            curElement = item
+            break
+          }
+        }}
+      }
+      sample.append(curElement)
+    }}
+    Seq(sample.toList : _*)
+  }
+
+  def node2vec(transitionMatrix : mutable.Map[String, mutable.Map[String, Double]], itemDistribution : mutable.Map[String, Double], sampleCount:Int, sampleLength:Int): Seq[Seq[String]] ={
+    val samples = mutable.ListBuffer[Seq[String]]()
+    for(_ <- 1 to sampleCount) {
+      samples.append(oneNode2vec(transitionMatrix, itemDistribution, sampleLength))
+    }
+    Seq(samples.toList : _*)
+  }
+
   def generateTransitionMatrix(samples : RDD[Seq[String]]): (mutable.Map[String, mutable.Map[String, Double]], mutable.Map[String, Double]) ={
     val pairSamples = samples.flatMap[(String, String)]( sample => {
       var pairSeq = Seq[(String,String)]()
@@ -256,7 +332,7 @@ object Embedding {
     val sampleCount = 20000
     val sampleLength = 10
     val newSamples = randomWalk(transitionMatrixAndItemDis._1, transitionMatrixAndItemDis._2, sampleCount, sampleLength)
-
+    //val newSamples = node2vec(transitionMatrixAndItemDis._1, transitionMatrixAndItemDis._2, sampleCount, sampleLength)
     val rddSamples = sparkSession.sparkContext.parallelize(newSamples)
     trainItem2vec(sparkSession, rddSamples, embLength, embOutputFilename, saveToRedis, redisKeyPrefix)
   }
