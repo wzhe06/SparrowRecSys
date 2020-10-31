@@ -3,12 +3,23 @@ package com.wzhe.sparrowrecsys.online.recprocess;
 import com.wzhe.sparrowrecsys.online.datamanager.DataManager;
 import com.wzhe.sparrowrecsys.online.datamanager.Movie;
 import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * Recommendation process of similar movies
  */
 
 public class SimilarMovieProcess {
+
+    private static ThreadPoolExecutor threadPool = new ThreadPoolExecutor(
+            3,
+            6,
+            1L,
+            TimeUnit.SECONDS,
+            new LinkedBlockingDeque<>(30),
+            Executors.defaultThreadFactory(),
+            new ThreadPoolExecutor.DiscardPolicy()
+    );
 
     /**
      * get recommendation movie list
@@ -81,6 +92,60 @@ public class SimilarMovieProcess {
         candidateMap.remove(movie.getMovieId());
         return new ArrayList<>(candidateMap.values());
     }
+
+
+    /**
+     * concurrent multiple-retrieval candidate generation method
+     * @param movie input movie object
+     * @return movie candidates
+     */
+    public static List<Movie> multipleConcurrentRetrievalCandidates(Movie movie){
+        if (null == movie){
+            return null;
+        }
+
+        HashSet<String> genres = new HashSet<>(movie.getGenres());
+        ConcurrentHashMap<Integer, Movie> candidateMap = new ConcurrentHashMap<>();
+
+
+        threadPool.execute(() -> {
+            for (String genre : genres){
+                List<Movie> oneCandidates = DataManager.getInstance().getMoviesByGenre(genre, 20, "rating");
+                for (Movie candidate : oneCandidates){
+                    candidateMap.put(candidate.getMovieId(), candidate);
+                }
+            }
+        });
+
+        threadPool.execute(() -> {
+            List<Movie> highRatingCandidates = DataManager.getInstance().getMovies(100, "rating");
+            for (Movie candidate : highRatingCandidates){
+                candidateMap.put(candidate.getMovieId(), candidate);
+            }
+        });
+
+        threadPool.execute(() -> {
+            List<Movie> latestCandidates = DataManager.getInstance().getMovies(100, "releaseYear");
+            for (Movie candidate : latestCandidates){
+                candidateMap.put(candidate.getMovieId(), candidate);
+            }
+        });
+
+        boolean completed = threadPool.getTaskCount() == threadPool.getCompletedTaskCount();
+        if (completed){
+            candidateMap.remove(movie.getMovieId());
+            return new ArrayList<>(candidateMap.values());
+        }
+        while (!completed){
+            completed = threadPool.getTaskCount() == threadPool.getCompletedTaskCount();
+            if (completed){
+                candidateMap.remove(movie.getMovieId());
+                return new ArrayList<>(candidateMap.values());
+            }
+        }
+        return new ArrayList<>(candidateMap.values());
+    }
+
 
     /**
      * embedding based candidate generation method
