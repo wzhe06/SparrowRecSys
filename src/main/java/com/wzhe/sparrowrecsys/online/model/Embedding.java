@@ -43,6 +43,6 @@ public class Embedding {
             denominator1 += embVector.get(i) * embVector.get(i);
             denominator2 += otherEmb.getEmbVector().get(i) * otherEmb.getEmbVector().get(i);
         }
-        return dotProduct / (Math.sqrt(denominator1) + Math.sqrt(denominator2));
+        return dotProduct / (Math.sqrt(denominator1) * Math.sqrt(denominator2));
     }
 }
