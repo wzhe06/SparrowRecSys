@@ -331,9 +331,9 @@ object Embedding {
 
     val sampleCount = 20000
     val sampleLength = 10
-
     val newSamples = randomWalk(transitionMatrixAndItemDis._1, transitionMatrixAndItemDis._2, sampleCount, sampleLength)
     //val newSamples = node2vec(transitionMatrixAndItemDis._1, transitionMatrixAndItemDis._2, sampleCount, sampleLength)
+
     val rddSamples = sparkSession.sparkContext.parallelize(newSamples)
     trainItem2vec(sparkSession, rddSamples, embLength, embOutputFilename, saveToRedis, redisKeyPrefix)
   }
