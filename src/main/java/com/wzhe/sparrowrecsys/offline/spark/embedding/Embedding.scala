@@ -181,10 +181,9 @@ object Embedding {
 
   def oneNode2vec(transitionMatrix : mutable.Map[String, mutable.Map[String, Double]], itemDistribution : mutable.Map[String, Double], sampleLength:Int) : Seq[String] = {
     val sample = mutable.ListBuffer[String]()
-    val p = 0.1F // 返回参数
-    val q = 0.2F // 进出参数
+    val p = 0.1F // return parameter
+    val q = 0.2F // in-out parameter
 
-    //pick the first element as nodeT
     val randomDouble = Random.nextDouble()
     var firstItem = ""
     var accumulateProb:Double = 0D
@@ -199,40 +198,40 @@ object Embedding {
 
     sample.append(firstItem)
     var curElement = firstItem
-    // nodeT始终是curElement的前一个值
-    var nodeT = curElement
+    var nodeT = firstItem // nodeT is pre node of curElement
+
     breakable { for(i <- 1 until sampleLength) {
       if (!itemDistribution.contains(curElement) || !transitionMatrix.contains(curElement)){
         break
       }
 
       val probDistribution = transitionMatrix(curElement)
-      val probDistributionNew = mutable.Map[String, Double]()
       val randomDouble = Random.nextDouble()
+
       if (i == 1) {
-        // 第一步时，curElement和nodeT是同一个点，所以要保持nodeT不动，curElement前进一步
         breakable { for ((item, prob) <- probDistribution) {
           if (randomDouble >= prob){
             curElement = item
             break
           }
         }}
+
       } else {
-        // 首先根据nodeT得到和nodeT相连的节点
-        val keysT = transitionMatrix(nodeT).keySet
-        // 利用keysT计算probDistributionNew
+
+        val probDistributionNew = mutable.Map[String, Double]()
+        val adjacentNodesT = transitionMatrix(nodeT).keySet // adjacent nodes of T
+
         for ((item, prob) <- probDistribution) {
-          if (keysT.contains(item)) {
+          if (adjacentNodesT.contains(item)) {
             probDistributionNew.put(item, prob)
           } else {
             probDistributionNew.put(item, prob*(1/q))
           }
         }
-        // 计算返回nodeT的概率
+        // calculate return probability
         if(probDistribution.contains(nodeT)){
           probDistributionNew.put(nodeT, probDistribution(nodeT)*(1/p))
         }
-        // 在选择下一个curElement之前，先将之前的curElement存储在nodeT中
         nodeT = curElement
 
         breakable { for ((item, prob) <- probDistributionNew) {
@@ -244,6 +243,7 @@ object Embedding {
       }
       sample.append(curElement)
     }}
+
     Seq(sample.toList : _*)
   }
 
