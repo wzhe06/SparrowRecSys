@@ -3,13 +3,20 @@ package com.wzhe.sparrowrecsys.offline.spark.featureeng
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.expressions.{UserDefinedFunction, Window}
-import org.apache.spark.sql.functions._
+import org.apache.spark.sql.functions.{format_number, _}
 import org.apache.spark.sql.{DataFrame, SparkSession}
+import redis.clients.jedis.Jedis
+import redis.clients.jedis.params.SetParams
 
 import scala.collection.immutable.ListMap
-import scala.collection.mutable
+import scala.collection.{JavaConversions, mutable}
 
 object FeatureEngForRecModel {
+
+  val NUMBER_PRECISION = 2
+  val redisEndpoint = "localhost"
+  val redisPort = 6379
+
   def addSampleLabel(ratingSamples:DataFrame): DataFrame ={
     ratingSamples.show(10, truncate = false)
     ratingSamples.printSchema()
@@ -40,6 +47,7 @@ object FeatureEngForRecModel {
 
     val samplesWithMovies2 = samplesWithMovies1.withColumn("releaseYear", extractReleaseYearUdf(col("title")))
       .withColumn("title", extractTitleUdf(col("title")))
+      .drop("title")  //title is useless currently
 
     //split genres
     val samplesWithMovies3 = samplesWithMovies2.withColumn("movieGenre1",split(col("genres"),"\\|").getItem(0))
@@ -49,8 +57,10 @@ object FeatureEngForRecModel {
     //add rating features
     val movieRatingFeatures = samplesWithMovies3.groupBy(col("movieId"))
       .agg(count(lit(1)).as("movieRatingCount"),
-        avg(col("rating")).as("movieAvgRating"),
+        format_number(avg(col("rating")), NUMBER_PRECISION).as("movieAvgRating"),
         stddev(col("rating")).as("movieRatingStddev"))
+    .na.fill(0).withColumn("movieRatingStddev",format_number(col("movieRatingStddev"), NUMBER_PRECISION))
+
 
     //join movie rating features
     val samplesWithMovies4 = samplesWithMovies3.join(movieRatingFeatures, Seq("movieId"), "left")
@@ -86,32 +96,134 @@ object FeatureEngForRecModel {
       .withColumn("userRatingCount", count(lit(1))
         .over(Window.partitionBy("userId")
           .orderBy(col("timestamp")).rowsBetween(-100, -1)))
-      .withColumn("userAvgReleaseYear", avg(col("releaseYear"))
+      .withColumn("userAvgReleaseYear", format_number(avg(col("releaseYear"))
         .over(Window.partitionBy("userId")
-          .orderBy(col("timestamp")).rowsBetween(-100, -1)))
+          .orderBy(col("timestamp")).rowsBetween(-100, -1)), NUMBER_PRECISION))
       .withColumn("userReleaseYearStddev", stddev(col("releaseYear"))
         .over(Window.partitionBy("userId")
           .orderBy(col("timestamp")).rowsBetween(-100, -1)))
-      .withColumn("userAvgRating", avg(col("rating"))
+      .withColumn("userAvgRating", format_number(avg(col("rating"))
         .over(Window.partitionBy("userId")
-          .orderBy(col("timestamp")).rowsBetween(-100, -1)))
+          .orderBy(col("timestamp")).rowsBetween(-100, -1)), NUMBER_PRECISION))
       .withColumn("userRatingStddev", stddev(col("rating"))
         .over(Window.partitionBy("userId")
           .orderBy(col("timestamp")).rowsBetween(-100, -1)))
       .withColumn("userGenres", extractGenres(collect_list(when(col("label") === 1, col("genres")).otherwise(lit(null)))
         .over(Window.partitionBy("userId")
           .orderBy(col("timestamp")).rowsBetween(-100, -1))))
+      .na.fill(0)
+      .withColumn("userRatingStddev",format_number(col("userRatingStddev"), NUMBER_PRECISION))
+      .withColumn("userReleaseYearStddev",format_number(col("userReleaseYearStddev"), NUMBER_PRECISION))
       .withColumn("userGenre1",col("userGenres").getItem(0))
       .withColumn("userGenre2",col("userGenres").getItem(1))
       .withColumn("userGenre3",col("userGenres").getItem(2))
       .withColumn("userGenre4",col("userGenres").getItem(3))
       .withColumn("userGenre5",col("userGenres").getItem(4))
       .drop("genres", "userGenres", "userPositiveHistory")
+      .filter(col("userRatingCount") > 1)
 
     samplesWithUserFeatures.printSchema()
     samplesWithUserFeatures.show(100, truncate = false)
 
     samplesWithUserFeatures
+  }
+
+  def extractAndSaveMovieFeaturesToRedis(samples:DataFrame): DataFrame = {
+    val movieLatestSamples = samples.withColumn("movieRowNum", row_number()
+      .over(Window.partitionBy("movieId")
+        .orderBy(col("timestamp").desc)))
+      .filter(col("movieRowNum") === 1)
+      .select("movieId","releaseYear", "movieGenre1","movieGenre2","movieGenre3","movieRatingCount",
+        "movieAvgRating", "movieRatingStddev")
+      .na.fill("")
+
+    movieLatestSamples.printSchema()
+    movieLatestSamples.show(100, false)
+
+    val movieFeaturePrefix = "mf_";
+
+    val redisClient = new Jedis(redisEndpoint, redisPort)
+    val params = SetParams.setParams()
+    //set ttl to 24hs * 30
+    params.ex(60 * 60 * 24 * 30)
+    val sampleArray = movieLatestSamples.collect()
+    println("total movie size:" + sampleArray.size)
+    var insertedMovieNumber = 0
+    val movieCount = sampleArray.size
+    for (sample <- sampleArray){
+      val movieKey = movieFeaturePrefix + sample.getAs[String]("movieId")
+      val valueMap = mutable.Map[String, String]()
+      valueMap("movieGenre1") = sample.getAs[String]("movieGenre1")
+      valueMap("movieGenre2") = sample.getAs[String]("movieGenre2")
+      valueMap("movieGenre3") = sample.getAs[String]("movieGenre3")
+      valueMap("movieRatingCount") = sample.getAs[Long]("movieRatingCount").toString
+      valueMap("releaseYear") = sample.getAs[Int]("releaseYear").toString
+      valueMap("movieAvgRating") = sample.getAs[String]("movieAvgRating")
+      valueMap("movieRatingStddev") = sample.getAs[String]("movieRatingStddev")
+
+      redisClient.hset(movieKey, JavaConversions.mapAsJavaMap(valueMap))
+      insertedMovieNumber += 1
+      if (insertedMovieNumber % 100 ==0){
+        println(insertedMovieNumber + "/" + movieCount + "...")
+      }
+    }
+
+    redisClient.close()
+    movieLatestSamples
+  }
+
+
+  def extractAndSaveUserFeaturesToRedis(samples:DataFrame): DataFrame = {
+    val userLatestSamples = samples.withColumn("userRowNum", row_number()
+      .over(Window.partitionBy("userId")
+        .orderBy(col("timestamp").desc)))
+      .filter(col("userRowNum") === 1)
+      .select("userId","userRatedMovie1", "userRatedMovie2","userRatedMovie3","userRatedMovie4","userRatedMovie5",
+        "userRatingCount", "userAvgReleaseYear", "userReleaseYearStddev", "userAvgRating", "userRatingStddev",
+        "userGenre1", "userGenre2","userGenre3","userGenre4","userGenre5")
+      .na.fill("")
+
+    userLatestSamples.printSchema()
+    userLatestSamples.show(100, false)
+
+    val userFeaturePrefix = "uf_";
+
+    val redisClient = new Jedis(redisEndpoint, redisPort)
+    val params = SetParams.setParams()
+    //set ttl to 24hs * 30
+    params.ex(60 * 60 * 24 * 30)
+    val sampleArray = userLatestSamples.collect()
+    println("total user size:" + sampleArray.size)
+    var insertedUserNumber = 0
+    val userCount = sampleArray.size
+    for (sample <- sampleArray){
+      val userKey = userFeaturePrefix + sample.getAs[String]("userId")
+      val valueMap = mutable.Map[String, String]()
+      valueMap("userRatedMovie1") = sample.getAs[String]("userRatedMovie1")
+      valueMap("userRatedMovie2") = sample.getAs[String]("userRatedMovie2")
+      valueMap("userRatedMovie3") = sample.getAs[String]("userRatedMovie3")
+      valueMap("userRatedMovie4") = sample.getAs[String]("userRatedMovie4")
+      valueMap("userRatedMovie5") = sample.getAs[String]("userRatedMovie5")
+      valueMap("userGenre1") = sample.getAs[String]("userGenre1")
+      valueMap("userGenre2") = sample.getAs[String]("userGenre2")
+      valueMap("userGenre3") = sample.getAs[String]("userGenre3")
+      valueMap("userGenre4") = sample.getAs[String]("userGenre4")
+      valueMap("userGenre5") = sample.getAs[String]("userGenre5")
+      valueMap("userRatingCount") = sample.getAs[Long]("userRatingCount").toString
+      valueMap("userAvgReleaseYear") = sample.getAs[String]("userAvgReleaseYear")
+      valueMap("userReleaseYearStddev") = sample.getAs[String]("userReleaseYearStddev")
+      valueMap("userAvgRating") = sample.getAs[String]("userAvgRating")
+      valueMap("userRatingStddev") = sample.getAs[String]("userRatingStddev")
+
+      redisClient.hset(userKey, JavaConversions.mapAsJavaMap(valueMap))
+      insertedUserNumber += 1
+      if (insertedUserNumber % 100 ==0){
+        println(insertedUserNumber + "/" + userCount + "...")
+      }
+    }
+
+    redisClient.close()
+    userLatestSamples
   }
 
   def main(args: Array[String]): Unit = {
@@ -134,6 +246,17 @@ object FeatureEngForRecModel {
 
     val samplesWithMovieFeatures = addMovieFeatures(movieSamples, ratingSamplesWithLabel)
     val samplesWithUserFeatures = addUserFeatures(samplesWithMovieFeatures)
+
+    /* save samples as csv format
+    val sampleResourcesPath = this.getClass.getResource("/webroot/sampledata")
+    samplesWithUserFeatures.sample(0.1).repartition(1).write.option("header", "true")
+      .csv(sampleResourcesPath+"/modelsamples")
+     */
+
+    /* save user features and item features to redis for online inference
+    extractAndSaveUserFeaturesToRedis(samplesWithUserFeatures)
+    extractAndSaveMovieFeaturesToRedis(samplesWithUserFeatures)
+    */
   }
 
 }
