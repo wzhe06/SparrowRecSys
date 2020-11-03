@@ -6,6 +6,7 @@ import com.wzhe.sparrowrecsys.online.model.Embedding;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * User class, contains attributes loaded from movielens ratings.csv
@@ -24,9 +25,13 @@ public class User {
     @JsonIgnore
     Embedding emb;
 
+    @JsonIgnore
+    Map<String, String> userFeatures;
+
     public User(){
         this.ratings = new ArrayList<>();
         this.emb = null;
+        this.userFeatures = null;
     }
 
     public int getUserId() {
@@ -97,5 +102,13 @@ public class User {
 
     public void setEmb(Embedding emb) {
         this.emb = emb;
+    }
+
+    public Map<String, String> getUserFeatures() {
+        return userFeatures;
+    }
+
+    public void setUserFeatures(Map<String, String> userFeatures) {
+        this.userFeatures = userFeatures;
     }
 }

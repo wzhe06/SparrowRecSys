@@ -22,7 +22,7 @@ object FeatureEngForRecModel {
     ratingSamples.printSchema()
     val sampleCount = ratingSamples.count()
     ratingSamples.groupBy(col("rating")).count().orderBy(col("rating"))
-      .withColumn("percentage", col("count")/sampleCount).show(100,false)
+      .withColumn("percentage", col("count")/sampleCount).show(100,truncate = false)
 
     ratingSamples.withColumn("label", when(col("rating") >= 3.5, 1).otherwise(0))
   }
@@ -138,18 +138,18 @@ object FeatureEngForRecModel {
       .na.fill("")
 
     movieLatestSamples.printSchema()
-    movieLatestSamples.show(100, false)
+    movieLatestSamples.show(100, truncate = false)
 
-    val movieFeaturePrefix = "mf_";
+    val movieFeaturePrefix = "mf:"
 
     val redisClient = new Jedis(redisEndpoint, redisPort)
     val params = SetParams.setParams()
     //set ttl to 24hs * 30
     params.ex(60 * 60 * 24 * 30)
     val sampleArray = movieLatestSamples.collect()
-    println("total movie size:" + sampleArray.size)
+    println("total movie size:" + sampleArray.length)
     var insertedMovieNumber = 0
-    val movieCount = sampleArray.size
+    val movieCount = sampleArray.length
     for (sample <- sampleArray){
       val movieKey = movieFeaturePrefix + sample.getAs[String]("movieId")
       val valueMap = mutable.Map[String, String]()
@@ -184,18 +184,18 @@ object FeatureEngForRecModel {
       .na.fill("")
 
     userLatestSamples.printSchema()
-    userLatestSamples.show(100, false)
+    userLatestSamples.show(100, truncate = false)
 
-    val userFeaturePrefix = "uf_";
+    val userFeaturePrefix = "uf:"
 
     val redisClient = new Jedis(redisEndpoint, redisPort)
     val params = SetParams.setParams()
     //set ttl to 24hs * 30
     params.ex(60 * 60 * 24 * 30)
     val sampleArray = userLatestSamples.collect()
-    println("total user size:" + sampleArray.size)
+    println("total user size:" + sampleArray.length)
     var insertedUserNumber = 0
-    val userCount = sampleArray.size
+    val userCount = sampleArray.length
     for (sample <- sampleArray){
       val userKey = userFeaturePrefix + sample.getAs[String]("userId")
       val valueMap = mutable.Map[String, String]()
@@ -242,7 +242,7 @@ object FeatureEngForRecModel {
     val ratingSamples = spark.read.format("csv").option("header", "true").load(ratingsResourcesPath.getPath)
 
     val ratingSamplesWithLabel = addSampleLabel(ratingSamples)
-    ratingSamplesWithLabel.show(10, false)
+    ratingSamplesWithLabel.show(10, truncate = false)
 
     val samplesWithMovieFeatures = addMovieFeatures(movieSamples, ratingSamplesWithLabel)
     val samplesWithUserFeatures = addUserFeatures(samplesWithMovieFeatures)
@@ -253,10 +253,11 @@ object FeatureEngForRecModel {
       .csv(sampleResourcesPath+"/modelsamples")
      */
 
-    /* save user features and item features to redis for online inference
+
+    //save user features and item features to redis for online inference
     extractAndSaveUserFeaturesToRedis(samplesWithUserFeatures)
     extractAndSaveMovieFeaturesToRedis(samplesWithUserFeatures)
-    */
+
   }
 
 }

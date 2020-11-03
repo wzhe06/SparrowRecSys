@@ -39,6 +39,14 @@ public class RecForYouProcess {
             }
         }
 
+        if (Config.IS_LOAD_USER_FEATURE_FROM_REDIS){
+            String userFeaturesKey = "uf:" + userId;
+            Map<String, String> userFeatures = RedisClient.getInstance().hgetAll(userFeaturesKey);
+            if (null != userFeatures){
+                user.setUserFeatures(userFeatures);
+            }
+        }
+
         List<Movie> rankedList = ranker(user, candidates, model);
 
         if (rankedList.size() > size){

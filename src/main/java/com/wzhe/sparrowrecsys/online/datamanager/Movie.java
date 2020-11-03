@@ -7,6 +7,7 @@ import com.wzhe.sparrowrecsys.online.model.Embedding;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Movie Class, contains attributes loaded from movielens movies.csv and other advanced data like averageRating, emb, etc.
@@ -31,6 +32,9 @@ public class Movie {
     @JsonIgnore
     List<Rating> ratings;
 
+    @JsonIgnore
+    Map<String, String> movieFeatures;
+
     final int TOP_RATING_SIZE = 10;
 
     @JsonSerialize(using = RatingListSerializer.class)
@@ -43,6 +47,7 @@ public class Movie {
         this.ratings = new ArrayList<>();
         this.topRatings = new LinkedList<>();
         this.emb = null;
+        this.movieFeatures = null;
     }
 
     public int getMovieId() {
@@ -140,5 +145,13 @@ public class Movie {
 
     public void setEmb(Embedding emb) {
         this.emb = emb;
+    }
+
+    public Map<String, String> getMovieFeatures() {
+        return movieFeatures;
+    }
+
+    public void setMovieFeatures(Map<String, String> movieFeatures) {
+        this.movieFeatures = movieFeatures;
     }
 }
