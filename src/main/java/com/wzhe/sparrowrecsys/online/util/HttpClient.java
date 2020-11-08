@@ -6,6 +6,8 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -29,6 +31,7 @@ public class HttpClient {
             request.setEntity(bodyEntity);
             final Future<HttpResponse> future = client.execute(request, null);
             final HttpResponse response = future.get();
+            client.close();
             return getRespondContent(response);
         }catch (Exception e){
             e.printStackTrace();
@@ -80,6 +83,72 @@ public class HttpClient {
     }
 
     public static void main(String[] args){
-        System.out.println(asyncSinglePostRequest("http://localhost:8501/v1/models/half_plus_two:predict", "{\"instances\": [1.0, 2.0, 5.0]}"));
+
+
+        //keys must be equal to:
+        // movieAvgRating,
+        // movieGenre1,movieGenre2,movieGenre3,
+        // movieId,
+        // movieRatingCount,
+        // movieRatingStddev,
+        // rating,
+        // releaseYear,
+        // timestamp,
+        // userAvgRating,
+        // userAvgReleaseYear,
+        // userGenre1,userGenre2,userGenre3,userGenre4,userGenre5,
+        // userId,
+        // userRatedMovie1,
+        // userRatedMovie2,
+        // userRatedMovie3,
+        // userRatedMovie4,
+        // userRatedMovie5,
+        // userRatingCount,
+        // userRatingStddev,
+        // userReleaseYearStddev"
+        //}
+        JSONObject instance = new JSONObject();
+        instance.put("userId",10351);
+        instance.put("timestamp",1254725234);
+        instance.put("userGenre1","Thriller");
+        instance.put("userGenre2","Crime");
+        instance.put("userGenre3","Drama");
+        instance.put("userGenre4","Comedy");
+        instance.put("userGenre5","Action");
+
+        instance.put("movieGenre1","Comedy");
+        instance.put("movieGenre2","Drama");
+        instance.put("movieGenre3","Romance");
+
+        instance.put("userRatedMovie1",608);
+        instance.put("userRatedMovie2",6);
+        instance.put("userRatedMovie3",1);
+        instance.put("userRatedMovie4",32);
+        instance.put("userRatedMovie5",25);
+
+        instance.put("movieId",52);
+        instance.put("rating",4.0);
+
+        instance.put("releaseYear",1995);
+        instance.put("movieRatingCount",2033);
+        instance.put("movieAvgRating",3.54);
+        instance.put("movieRatingStddev",0.91);
+        instance.put("userRatingCount",7);
+        instance.put("userAvgReleaseYear","1995.43");
+        instance.put("userReleaseYearStddev",0.53);
+        instance.put("userAvgRating",3.86);
+        instance.put("userRatingStddev",0.69);
+
+        JSONArray instances = new JSONArray();
+        instances.put(instance);
+
+        JSONObject instancesRoot = new JSONObject();
+        instancesRoot.put("instances", instances);
+
+        System.out.println(instancesRoot.toString());
+
+
+
+        System.out.println(asyncSinglePostRequest("http://localhost:8501/v1/models/recmodel:predict", instancesRoot.toString()));
     }
 }

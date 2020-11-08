@@ -4,6 +4,7 @@ import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.expressions.{UserDefinedFunction, Window}
 import org.apache.spark.sql.functions.{format_number, _}
+import org.apache.spark.sql.types.{DecimalType, FloatType, IntegerType}
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import redis.clients.jedis.Jedis
 import redis.clients.jedis.params.SetParams
@@ -96,9 +97,9 @@ object FeatureEngForRecModel {
       .withColumn("userRatingCount", count(lit(1))
         .over(Window.partitionBy("userId")
           .orderBy(col("timestamp")).rowsBetween(-100, -1)))
-      .withColumn("userAvgReleaseYear", format_number(avg(col("releaseYear"))
+      .withColumn("userAvgReleaseYear", avg(col("releaseYear"))
         .over(Window.partitionBy("userId")
-          .orderBy(col("timestamp")).rowsBetween(-100, -1)), NUMBER_PRECISION))
+          .orderBy(col("timestamp")).rowsBetween(-100, -1)).cast(IntegerType))
       .withColumn("userReleaseYearStddev", stddev(col("releaseYear"))
         .over(Window.partitionBy("userId")
           .orderBy(col("timestamp")).rowsBetween(-100, -1)))
@@ -247,17 +248,17 @@ object FeatureEngForRecModel {
     val samplesWithMovieFeatures = addMovieFeatures(movieSamples, ratingSamplesWithLabel)
     val samplesWithUserFeatures = addUserFeatures(samplesWithMovieFeatures)
 
-    /* save samples as csv format
+
+    //save samples as csv format
+
+
     val sampleResourcesPath = this.getClass.getResource("/webroot/sampledata")
     samplesWithUserFeatures.sample(0.1).repartition(1).write.option("header", "true")
       .csv(sampleResourcesPath+"/modelsamples")
-     */
-
 
     //save user features and item features to redis for online inference
-    extractAndSaveUserFeaturesToRedis(samplesWithUserFeatures)
-    extractAndSaveMovieFeaturesToRedis(samplesWithUserFeatures)
-
+    //extractAndSaveUserFeaturesToRedis(samplesWithUserFeatures)
+    //extractAndSaveMovieFeaturesToRedis(samplesWithUserFeatures)
   }
 
 }
