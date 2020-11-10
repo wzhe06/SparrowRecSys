@@ -43,23 +43,11 @@ for feature, vocab in GENRE_FEATURES.items():
     emb_col = tf.feature_column.embedding_column(cat_col, 10)
     categorical_columns.append(emb_col)
 
-MOVIE_ID_FEATURES = [
-    'userRatedMovie1',
-    'userRatedMovie2',
-    'userRatedMovie3',
-    'userRatedMovie4',
-    'userRatedMovie5',
-    'movieId'
-]
+movie_col = tf.feature_column.categorical_column_with_identity(key='movieId', num_buckets=1001)
+movie_emb_col = tf.feature_column.embedding_column(movie_col, 10)
+categorical_columns.append(movie_emb_col)
 
-for feature in MOVIE_ID_FEATURES:
-    movie_col = tf.feature_column.categorical_column_with_identity(
-        key=feature, num_buckets=1001)
-    movie_emb_col = tf.feature_column.embedding_column(movie_col, 10)
-    categorical_columns.append(movie_emb_col)
-
-user_col = tf.feature_column.categorical_column_with_identity(
-        key='userId', num_buckets=30001)
+user_col = tf.feature_column.categorical_column_with_identity(key='userId', num_buckets=30001)
 user_emb_col = tf.feature_column.embedding_column(user_col, 10)
 categorical_columns.append(user_emb_col)
 
@@ -99,3 +87,6 @@ for prediction, goodRating in zip(predictions[:20], list(test_dataset)[0][1][:20
           ("Good Rating" if bool(goodRating) else "Bad Rating"))
 
 tf.saved_model.save(model, '/Users/zhewang/Workspace/SparrowRecSys/src/main/resources/webroot/modeldata/MLPRec/005')
+
+
+
