@@ -9,7 +9,7 @@ def get_dataset(file_path):
         file_path,
         batch_size=12,
         label_name='label',
-        na_value="?",
+        na_value="",
         num_epochs=1,
         ignore_errors=True)
     return dataset
@@ -17,6 +17,8 @@ def get_dataset(file_path):
 
 # sample dataset size 110830/12(batch_size) = 9235
 raw_samples_data = get_dataset(samples_file_path)
+
+print(raw_samples_data)
 
 test_dataset = raw_samples_data.take(1000)
 train_dataset = raw_samples_data.skip(1000)
@@ -43,14 +45,6 @@ for feature, vocab in GENRE_FEATURES.items():
     emb_col = tf.feature_column.embedding_column(cat_col, 10)
     categorical_columns.append(emb_col)
 
-movie_col = tf.feature_column.categorical_column_with_identity(key='movieId', num_buckets=1001)
-movie_emb_col = tf.feature_column.embedding_column(movie_col, 10)
-categorical_columns.append(movie_emb_col)
-
-user_col = tf.feature_column.categorical_column_with_identity(key='userId', num_buckets=30001)
-user_emb_col = tf.feature_column.embedding_column(user_col, 10)
-categorical_columns.append(user_emb_col)
-
 numerical_columns = [tf.feature_column.numeric_column('releaseYear'),
                      tf.feature_column.numeric_column('movieRatingCount'),
                      tf.feature_column.numeric_column('movieAvgRating'),
@@ -61,19 +55,52 @@ numerical_columns = [tf.feature_column.numeric_column('releaseYear'),
 
 preprocessing_layer = tf.keras.layers.DenseFeatures(numerical_columns + categorical_columns)
 
-model = tf.keras.Sequential([
-    preprocessing_layer,
-    tf.keras.layers.Dense(128, activation='relu'),
-    tf.keras.layers.Dense(128, activation='relu'),
-    tf.keras.layers.Dense(1, activation='sigmoid'),
-])
+inputs = {
+    #'movieAvgRating': tf.keras.layers.Input(name='movieAvgRating', shape=(), dtype='float32'),
+    #'movieRatingStddev': tf.keras.layers.Input(name='movieRatingStddev', shape=(), dtype='float32'),
+    #'movieRatingCount': tf.keras.layers.Input(name='movieRatingCount', shape=(), dtype='int32'),
+    #'userAvgRating': tf.keras.layers.Input(name='userAvgRating', shape=(), dtype='float32'),
+    #'userRatingStddev': tf.keras.layers.Input(name='userRatingStddev', shape=(), dtype='float32'),
+    #'userRatingCount': tf.keras.layers.Input(name='userRatingCount', shape=(), dtype='int32'),
 
-model.compile(
-    loss='binary_crossentropy',
-    optimizer='adam',
-    metrics=['accuracy'])
+    'movieId': tf.keras.layers.Input(name='movieId', shape=(), dtype='int32'),
+    'userId': tf.keras.layers.Input(name='userId', shape=(), dtype='int32'),
+    #'userRatedMovie1': tf.keras.layers.Input(name='userRatedMovie1', shape=(), dtype='int32')
+}
 
-model.fit(train_dataset, epochs=10)
+movie_col = tf.feature_column.categorical_column_with_identity(key='movieId', num_buckets=1001)
+movie_emb_col = tf.feature_column.embedding_column(movie_col, 10)
+
+user_col = tf.feature_column.categorical_column_with_identity(key='userId', num_buckets=30001)
+user_emb_col = tf.feature_column.embedding_column(user_col, 10)
+
+item_columns = [movie_emb_col]
+user_columns = [user_emb_col]
+
+
+def create_two_tower_model(feature_inputs, item_feature_columns, user_feature_columns, tower_hidden_units):
+    item_tower = tf.keras.layers.DenseFeatures(item_feature_columns)(feature_inputs)
+    for num_nodes in tower_hidden_units:
+        item_tower = tf.keras.layers.Dense(num_nodes, activation='relu')(item_tower)
+
+    user_tower = tf.keras.layers.DenseFeatures(user_feature_columns)(feature_inputs)
+    for num_nodes in tower_hidden_units:
+        user_tower = tf.keras.layers.Dense(num_nodes, activation='relu')(user_tower)
+
+    output = tf.keras.layers.Dot(axes=1)([item_tower, user_tower])
+
+    two_tower_model = tf.keras.Model(inputs, output)
+    two_tower_model.compile(optimizer='adam',
+                            loss='binary_crossentropy',
+                            metrics=['accuracy'])
+    return two_tower_model
+
+
+
+
+model = create_two_tower_model(inputs, item_columns, user_columns, [10, 10])
+
+model.fit(train_dataset, epochs=5)
 
 test_loss, test_accuracy = model.evaluate(test_dataset)
 
@@ -81,12 +108,9 @@ print('\n\nTest Loss {}, Test Accuracy {}'.format(test_loss, test_accuracy))
 
 predictions = model.predict(test_dataset)
 
-for prediction, goodRating in zip(predictions[:20], list(test_dataset)[0][1][:20]):
+for prediction, rating in zip(predictions[:12], list(test_dataset)[0][1][:12]):
     print("Predicted good rating: {:.2%}".format(prediction[0]),
           " | Actual rating label: ",
-          ("Good Rating" if bool(goodRating) else "Bad Rating"))
+          ("Good Rating" if bool(rating) else "Bad Rating"))
 
 tf.saved_model.save(model, '/Users/zhewang/Workspace/SparrowRecSys/src/main/resources/webroot/modeldata/MLPRec/005')
-
-
-

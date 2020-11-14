@@ -9,7 +9,7 @@ def get_dataset(file_path):
         file_path,
         batch_size=12,
         label_name='label',
-        na_value="?",
+        na_value="",
         num_epochs=1,
         ignore_errors=True)
     return dataset
@@ -66,18 +66,15 @@ inputs = {
 
     'movieId': tf.keras.layers.Input(name='movieId', shape=(), dtype='int32'),
     'userId': tf.keras.layers.Input(name='userId', shape=(), dtype='int32'),
-    'userRatedMovie1': tf.keras.layers.Input(name='userRatedMovie1', shape=(), dtype='int32')
+    'userGenre1': tf.keras.layers.Input(name='userGenre1', shape=(), dtype='string'),
+    'movieGenre1': tf.keras.layers.Input(name='movieGenre1', shape=(), dtype='string')
+    # 'userRatedMovie1': tf.keras.layers.Input(name='userRatedMovie1', shape=(), dtype='int32')
 }
 
 movie_col = tf.feature_column.categorical_column_with_identity(key='movieId', num_buckets=1001)
-movie_emb_col = tf.feature_column.embedding_column(movie_col, 10)
-
 user_col = tf.feature_column.categorical_column_with_identity(key='userId', num_buckets=30001)
+movie_emb_col = tf.feature_column.embedding_column(movie_col, 10)
 user_emb_col = tf.feature_column.embedding_column(user_col, 10)
-
-movie_feature = tf.feature_column.categorical_column_with_identity(key='movieId', num_buckets=1001)
-rated_movie_feature = tf.feature_column.categorical_column_with_identity(key='userRatedMovie1', num_buckets=1001)
-crossed_feature = tf.feature_column.indicator_column(tf.feature_column.crossed_column([movie_feature, rated_movie_feature], 10000))
 
 deep_feature_columns = [tf.feature_column.numeric_column('releaseYear'),
                         tf.feature_column.numeric_column('movieRatingCount'),
@@ -89,36 +86,48 @@ deep_feature_columns = [tf.feature_column.numeric_column('releaseYear'),
                         movie_emb_col,
                         user_emb_col]
 
-wide_feature_columns = [crossed_feature]
+user_genre_col = tf.feature_column.categorical_column_with_vocabulary_list(key="userGenre1",
+                                                                           vocabulary_list=genre_vocab)
+item_genre_col = tf.feature_column.categorical_column_with_vocabulary_list(key="movieGenre1",
+                                                                           vocabulary_list=genre_vocab)
+user_genre_emb_col = tf.feature_column.embedding_column(user_genre_col, 10)
+item_genre_emb_col = tf.feature_column.embedding_column(item_genre_col, 10)
 
+item_emb_layer = tf.keras.layers.DenseFeatures([movie_emb_col])(inputs)
+user_emb_layer = tf.keras.layers.DenseFeatures([user_emb_col])(inputs)
+item_genre_emb_layer = tf.keras.layers.DenseFeatures([item_genre_emb_col])(inputs)
+user_genre_emb_layer = tf.keras.layers.DenseFeatures([user_genre_emb_col])(inputs)
 
-def wide_and_deep_classifier(inputs, linear_feature_columns, dnn_feature_columns, dnn_hidden_units):
-    deep = tf.keras.layers.DenseFeatures(dnn_feature_columns)(inputs)
-    for num_nodes in dnn_hidden_units:
-        deep = tf.keras.layers.Dense(num_nodes, activation='relu')(deep)
-    wide = tf.keras.layers.DenseFeatures(linear_feature_columns)(inputs)
-    both = tf.keras.layers.concatenate([deep, wide])
-    output = tf.keras.layers.Dense(1, activation='sigmoid')(both)
-    model = tf.keras.Model(inputs, output)
-    model.compile(optimizer='adam',
-                  loss='binary_crossentropy',
-                  metrics=['accuracy'])
-    return model
+product_layer_item_user = tf.keras.layers.Dot(axes=1)([item_emb_layer, user_emb_layer])
+product_layer_item_genre_user_genre = tf.keras.layers.Dot(axes=1)([item_genre_emb_layer, user_genre_emb_layer])
+product_layer_item_genre_user = tf.keras.layers.Dot(axes=1)([item_genre_emb_layer, user_emb_layer])
+product_layer_user_genre_item = tf.keras.layers.Dot(axes=1)([item_emb_layer, user_genre_emb_layer])
 
+#deep part
+deep = tf.keras.layers.DenseFeatures(deep_feature_columns)(inputs)
+deep = tf.keras.layers.Dense(64, activation='relu')(deep)
+deep = tf.keras.layers.Dense(64, activation='relu')(deep)
 
-model = wide_and_deep_classifier(inputs, wide_feature_columns, deep_feature_columns, [64, 16])
+concat_layer = tf.keras.layers.concatenate([product_layer_item_user, product_layer_item_genre_user_genre,
+                                            product_layer_item_genre_user, product_layer_user_genre_item, deep], axis=1)
+output_layer = tf.keras.layers.Dense(1, activation='sigmoid')(concat_layer)
 
-model.fit(train_dataset, epochs=10)
+deep_fm_model = tf.keras.Model(inputs, output_layer)
+deep_fm_model.compile(optimizer='adam',
+                      loss='binary_crossentropy',
+                      metrics=['accuracy'])
 
-test_loss, test_accuracy = model.evaluate(test_dataset)
+deep_fm_model.fit(train_dataset, epochs=5)
+
+test_loss, test_accuracy = deep_fm_model.evaluate(test_dataset)
 
 print('\n\nTest Loss {}, Test Accuracy {}'.format(test_loss, test_accuracy))
 
-predictions = model.predict(test_dataset)
+predictions = deep_fm_model.predict(test_dataset)
 
-for prediction, goodRating in zip(predictions[:12], list(test_dataset)[0][1][:12]):
+for prediction, rating in zip(predictions[:12], list(test_dataset)[0][1][:12]):
     print("Predicted good rating: {:.2%}".format(prediction[0]),
           " | Actual rating label: ",
-          ("Good Rating" if bool(goodRating) else "Bad Rating"))
+          ("Good Rating" if bool(rating) else "Bad Rating"))
 
-tf.saved_model.save(model, '/Users/zhewang/Workspace/SparrowRecSys/src/main/resources/webroot/modeldata/MLPRec/005')
+# tf.saved_model.save(deep_fm_model, '/Users/zhewang/Workspace/SparrowRecSys/src/main/resources/webroot/modeldata/MLPRec/005')
