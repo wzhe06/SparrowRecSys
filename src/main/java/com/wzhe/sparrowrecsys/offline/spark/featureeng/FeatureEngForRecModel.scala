@@ -211,7 +211,7 @@ object FeatureEngForRecModel {
       valueMap("userGenre4") = sample.getAs[String]("userGenre4")
       valueMap("userGenre5") = sample.getAs[String]("userGenre5")
       valueMap("userRatingCount") = sample.getAs[Long]("userRatingCount").toString
-      valueMap("userAvgReleaseYear") = sample.getAs[String]("userAvgReleaseYear")
+      valueMap("userAvgReleaseYear") = sample.getAs[Int]("userAvgReleaseYear").toString
       valueMap("userReleaseYearStddev") = sample.getAs[String]("userReleaseYearStddev")
       valueMap("userAvgRating") = sample.getAs[String]("userAvgRating")
       valueMap("userRatingStddev") = sample.getAs[String]("userRatingStddev")

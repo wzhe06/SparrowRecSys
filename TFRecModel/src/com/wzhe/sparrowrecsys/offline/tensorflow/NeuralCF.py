@@ -40,8 +40,20 @@ inputs = {
 }
 
 
-# neural cf model arch one. embedding+MLP in each tower, then dot product layer as the output
+# neural cf model arch two. only embedding in each tower, then MLP as the interaction layers
 def neural_cf_model_1(feature_inputs, item_feature_columns, user_feature_columns, hidden_units):
+    item_tower = tf.keras.layers.DenseFeatures(item_feature_columns)(feature_inputs)
+    user_tower = tf.keras.layers.DenseFeatures(user_feature_columns)(feature_inputs)
+    interact_layer = tf.keras.layers.concatenate([item_tower, user_tower])
+    for num_nodes in hidden_units:
+        interact_layer = tf.keras.layers.Dense(num_nodes, activation='relu')(item_tower)
+    output_layer = tf.keras.layers.Dense(1, activation='sigmoid')(interact_layer)
+    neural_cf_model = tf.keras.Model(feature_inputs, output_layer)
+    return neural_cf_model
+
+
+# neural cf model arch one. embedding+MLP in each tower, then dot product layer as the output
+def neural_cf_model_2(feature_inputs, item_feature_columns, user_feature_columns, hidden_units):
     item_tower = tf.keras.layers.DenseFeatures(item_feature_columns)(feature_inputs)
     for num_nodes in hidden_units:
         item_tower = tf.keras.layers.Dense(num_nodes, activation='relu')(item_tower)
@@ -56,20 +68,8 @@ def neural_cf_model_1(feature_inputs, item_feature_columns, user_feature_columns
     return neural_cf_model
 
 
-# neural cf model arch two. only embedding in each tower, then MLP as the interaction layers
-def neural_cf_model_2(feature_inputs, item_feature_columns, user_feature_columns, hidden_units):
-    item_tower = tf.keras.layers.DenseFeatures(item_feature_columns)(feature_inputs)
-    user_tower = tf.keras.layers.DenseFeatures(user_feature_columns)(feature_inputs)
-    interact_layer = tf.keras.layers.concatenate([item_tower, user_tower])
-    for num_nodes in hidden_units:
-        interact_layer = tf.keras.layers.Dense(num_nodes, activation='relu')(item_tower)
-    output_layer = tf.keras.layers.Dense(1, activation='sigmoid')(interact_layer)
-    neural_cf_model = tf.keras.Model(feature_inputs, output_layer)
-    return neural_cf_model
-
-
 # neural cf model architecture
-model = neural_cf_model_2(inputs, [movie_emb_col], [user_emb_col], [10, 10])
+model = neural_cf_model_1(inputs, [movie_emb_col], [user_emb_col], [10, 10])
 
 # compile the model, set loss function, optimizer and evaluation metrics
 model.compile(
