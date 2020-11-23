@@ -46,7 +46,7 @@ def neural_cf_model_1(feature_inputs, item_feature_columns, user_feature_columns
     user_tower = tf.keras.layers.DenseFeatures(user_feature_columns)(feature_inputs)
     interact_layer = tf.keras.layers.concatenate([item_tower, user_tower])
     for num_nodes in hidden_units:
-        interact_layer = tf.keras.layers.Dense(num_nodes, activation='relu')(item_tower)
+        interact_layer = tf.keras.layers.Dense(num_nodes, activation='relu')(interact_layer)
     output_layer = tf.keras.layers.Dense(1, activation='sigmoid')(interact_layer)
     neural_cf_model = tf.keras.Model(feature_inputs, output_layer)
     return neural_cf_model
