@@ -6,8 +6,12 @@ import com.wzhe.sparrowrecsys.online.datamanager.RedisClient;
 import com.wzhe.sparrowrecsys.online.datamanager.User;
 import com.wzhe.sparrowrecsys.online.util.Config;
 import com.wzhe.sparrowrecsys.online.util.Utility;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.util.*;
+
+import static com.wzhe.sparrowrecsys.online.util.HttpClient.asyncSinglePostRequest;
 
 /**
  * Recommendation process of similar movies
@@ -64,17 +68,24 @@ public class RecForYouProcess {
      */
     public static List<Movie> ranker(User user, List<Movie> candidates, String model){
         HashMap<Movie, Double> candidateScoreMap = new HashMap<>();
-        for (Movie candidate : candidates){
-            double similarity;
-            switch (model){
-                case "emb":
-                    similarity = calculateEmbSimilarScore(user, candidate);
-                    break;
-                default:
-                    similarity = calculateEmbSimilarScore(user, candidate);
-            }
-            candidateScoreMap.put(candidate, similarity);
+
+        switch (model){
+            case "emb":
+                for (Movie candidate : candidates){
+                    double similarity = calculateEmbSimilarScore(user, candidate);
+                    candidateScoreMap.put(candidate, similarity);
+                }
+                break;
+            case "nerualcf":
+                callNeuralCFTFServing(user, candidates, candidateScoreMap);
+                break;
+            default:
+                //default ranking in candidate set
+                for (int i = 0 ; i < candidates.size(); i++){
+                    candidateScoreMap.put(candidates.get(i), (double)(candidates.size() - i));
+                }
         }
+
         List<Movie> rankedList = new ArrayList<>();
         candidateScoreMap.entrySet().stream().sorted(Map.Entry.comparingByValue(Comparator.reverseOrder())).forEach(m -> rankedList.add(m.getKey()));
         return rankedList;
@@ -91,5 +102,38 @@ public class RecForYouProcess {
             return -1;
         }
         return user.getEmb().calculateSimilarity(candidate.getEmb());
+    }
+
+    /**
+     * call TenserFlow serving to get the NeuralCF model inference result
+     * @param user              input user
+     * @param candidates        candidate movies
+     * @param candidateScoreMap save prediction score into the score map
+     */
+    public static void callNeuralCFTFServing(User user, List<Movie> candidates, HashMap<Movie, Double> candidateScoreMap){
+        if (null == user || null == candidates || candidates.size() == 0){
+            return;
+        }
+
+        JSONArray instances = new JSONArray();
+        for (Movie m : candidates){
+            JSONObject instance = new JSONObject();
+            instance.put("userId", user.getUserId());
+            instance.put("movieId", m.getMovieId());
+            instances.put(instance);
+        }
+
+        JSONObject instancesRoot = new JSONObject();
+        instancesRoot.put("instances", instances);
+
+        //need to confirm the tf serving end point
+        String predictionScores = asyncSinglePostRequest("http://localhost:8501/v1/models/recmodel:predict", instancesRoot.toString());
+        System.out.println("send user" + user.getUserId() + " request to tf serving.");
+
+        JSONObject predictionsObject = new JSONObject(predictionScores);
+        JSONArray scores = predictionsObject.getJSONArray("predictions");
+        for (int i = 0 ; i < candidates.size(); i++){
+            candidateScoreMap.put(candidates.get(i), scores.getJSONArray(i).getDouble(0));
+        }
     }
 }

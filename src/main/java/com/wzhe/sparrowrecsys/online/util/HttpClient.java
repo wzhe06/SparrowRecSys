@@ -109,6 +109,9 @@ public class HttpClient {
         //}
         JSONObject instance = new JSONObject();
         instance.put("userId",10351);
+        instance.put("movieId",52);
+
+        /*
         instance.put("timestamp",1254725234);
         instance.put("userGenre1","Thriller");
         instance.put("userGenre2","Crime");
@@ -137,10 +140,16 @@ public class HttpClient {
         instance.put("userAvgReleaseYear","1995.43");
         instance.put("userReleaseYearStddev",0.53);
         instance.put("userAvgRating",3.86);
-        instance.put("userRatingStddev",0.69);
+        instance.put("userRatingStddev",0.69);*/
+
+
+        JSONObject instance2 = new JSONObject();
+        instance2.put("userId",10351);
+        instance2.put("movieId",53);
 
         JSONArray instances = new JSONArray();
         instances.put(instance);
+        instances.put(instance2);
 
         JSONObject instancesRoot = new JSONObject();
         instancesRoot.put("instances", instances);

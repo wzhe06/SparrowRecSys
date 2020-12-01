@@ -13,7 +13,7 @@
     <link href="./css/style.css" rel="stylesheet"/>
     <link rel="shortcut icon" href="./resources/favicon.ico">
     <script src="./js/jquery-3.2.1.min.js"></script>
-    <script src="./js/recsys.js?v=1.31"></script>
+    <script src="./js/recsys.js?v=1.33"></script>
     <style>
         .movie-row .movie-row-bounds .movie-row-item{
             display: block;
@@ -130,11 +130,16 @@ function getQueryString(name, windowLocation) {
 
 var windowLocation = window.location;
 var userId = getQueryString("id",windowLocation);
+var model = getQueryString("model",windowLocation);
+if(null == model){
+    model = "emb";
+    //model = "nerualcf"
+}
 
 var baseUrl = windowLocation.protocol + "//" + windowLocation.host + "/"
 
 addUserDetails("user-details-container", userId, baseUrl);
-addRecForYou("#recPage", "recForYou", userId, baseUrl);
+addRecForYou("#recPage", "recForYou", userId, model, baseUrl);
 addUserHistory("#recPage", "userHistory", userId, baseUrl);
 
 </script>

@@ -90,3 +90,13 @@ for prediction, goodRating in zip(predictions[:12], list(test_dataset)[0][1][:12
     print("Predicted good rating: {:.2%}".format(prediction[0]),
           " | Actual rating label: ",
           ("Good Rating" if bool(goodRating) else "Bad Rating"))
+
+tf.keras.models.save_model(
+    model,
+    "file:///Users/zhewang/Workspace/SparrowRecSys/src/main/resources/webroot/modeldata/neuralcf/002",
+    overwrite=True,
+    include_optimizer=True,
+    save_format=None,
+    signatures=None,
+    options=None
+)
