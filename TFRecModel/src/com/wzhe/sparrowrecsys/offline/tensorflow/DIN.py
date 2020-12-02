@@ -2,8 +2,7 @@ import tensorflow as tf
 from keras import backend as K
 
 # Training samples path, change to your local path
-# TRAIN_DATA_URL = "file:///Users/zhewang/Workspace/SparrowRecSys/src/main/resources/webroot/sampledata/modelSamples.csv"
-TRAIN_DATA_URL = "file:///C:/Users/Conor/Desktop/workspace/SparrowRecSys/src/main/resources/webroot/sampledata/modelSamples.csv"
+TRAIN_DATA_URL = "file:///Users/zhewang/Workspace/SparrowRecSys/src/main/resources/webroot/sampledata/modelSamples.csv"
 samples_file_path = tf.keras.utils.get_file("modelSamples.csv", TRAIN_DATA_URL)
 
 # load sample as tf dataset
