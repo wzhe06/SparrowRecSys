@@ -1,8 +1,9 @@
 package com.wzhe.sparrowrecsys.offline.spark.model
 
 import org.apache.spark.SparkConf
-import org.apache.spark.ml.evaluation.RegressionEvaluator
+import org.apache.spark.ml.evaluation.{BinaryClassificationEvaluator, RegressionEvaluator}
 import org.apache.spark.ml.recommendation.ALS
+import org.apache.spark.ml.tuning.{CrossValidator, ParamGridBuilder}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions._
 
@@ -66,6 +67,18 @@ object CollaborativeFiltering {
     movieRecs.show(false)
     userSubsetRecs.show(false)
     movieSubSetRecs.show(false)
+
+    val paramGrid = new ParamGridBuilder()
+      .addGrid(als.regParam, Array(0.01))
+      .build()
+
+    val cv = new CrossValidator()
+      .setEstimator(als)
+      .setEvaluator(evaluator)
+      .setEstimatorParamMaps(paramGrid)
+      .setNumFolds(10)  // Use 3+ in practice
+    val cvModel = cv.fit(test)
+    val avgMetrics = cvModel.avgMetrics
 
     spark.stop()
   }

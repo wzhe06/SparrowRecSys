@@ -44,6 +44,10 @@ public class DataManager {
         loadLinkData(linkDataPath);
         loadRatingData(ratingDataPath);
         loadMovieEmb(movieEmbPath, movieRedisKey);
+        if (Config.IS_LOAD_ITEM_FEATURE_FROM_REDIS){
+            loadMovieFeatures("mf:");
+        }
+
         loadUserEmb(userEmbPath, userRedisKey);
     }
 
@@ -119,6 +123,23 @@ public class DataManager {
             }
             System.out.println("Loading movie embedding completed. " + validEmbCount + " movie embeddings in total.");
         }
+    }
+
+    //load movie features
+    private void loadMovieFeatures(String movieFeaturesPrefix) throws Exception{
+        System.out.println("Loading movie features from Redis ...");
+        Set<String> movieFeaturesKeys = RedisClient.getInstance().keys(movieFeaturesPrefix + "*");
+        int validFeaturesCount = 0;
+        for (String movieFeaturesKey : movieFeaturesKeys){
+            String movieId = movieFeaturesKey.split(":")[1];
+            Movie m = getMovieById(Integer.parseInt(movieId));
+            if (null == m) {
+                continue;
+            }
+            m.setMovieFeatures(RedisClient.getInstance().hgetAll(movieFeaturesKey));
+            validFeaturesCount++;
+        }
+        System.out.println("Loading movie features completed. " + validFeaturesCount + " movie features in total.");
     }
 
     //load user embedding

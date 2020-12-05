@@ -154,7 +154,7 @@ function addUserHistory(pageId, containerId, userId, baseUrl){
     });
 }
 
-function addRecForYou(pageId, containerId, userId, baseUrl){
+function addRecForYou(pageId, containerId, userId, model, baseUrl){
 
     var rowDiv = '<div class="frontpage-section-top"> \
                 <div class="explore-header frontpage-section-header">\
@@ -170,7 +170,7 @@ function addRecForYou(pageId, containerId, userId, baseUrl){
                </div>'
     $(pageId).prepend(rowDiv);
 
-    $.getJSON(baseUrl + "getrecforyou?id="+userId+"&size=32&model=emb", function(result){
+    $.getJSON(baseUrl + "getrecforyou?id="+userId+"&size=32&model=" + model, function(result){
                 $.each(result, function(i, movie){
                   appendMovie2Row(containerId, movie.title, movie.movieId, movie.releaseYear, movie.averageRating.toPrecision(2), movie.ratingNumber, movie.genres,baseUrl);
                 });
