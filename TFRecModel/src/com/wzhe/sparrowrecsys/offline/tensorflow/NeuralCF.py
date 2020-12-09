@@ -1,8 +1,13 @@
 import tensorflow as tf
 
 # Training samples path, change to your local path
-TRAIN_DATA_URL = "file:///Users/zhewang/Workspace/SparrowRecSys/src/main/resources/webroot/sampledata/modelSamples.csv"
-samples_file_path = tf.keras.utils.get_file("modelSamples.csv", TRAIN_DATA_URL)
+training_samples_file_path = tf.keras.utils.get_file("trainingSamples.csv",
+                                                     "file:///Users/zhewang/Workspace/SparrowRecSys/src/main"
+                                                     "/resources/webroot/sampledata/trainingSamples.csv")
+# Test samples path, change to your local path
+test_samples_file_path = tf.keras.utils.get_file("testSamples.csv",
+                                                 "file:///Users/zhewang/Workspace/SparrowRecSys/src/main"
+                                                 "/resources/webroot/sampledata/testSamples.csv")
 
 
 # load sample as tf dataset
@@ -17,13 +22,9 @@ def get_dataset(file_path):
     return dataset
 
 
-# sample dataset size 110830/12(batch_size) = 9235
-raw_samples_data = get_dataset(samples_file_path)
-print(raw_samples_data)
-
 # split as test dataset and training dataset
-test_dataset = raw_samples_data.take(1000)
-train_dataset = raw_samples_data.skip(1000)
+train_dataset = get_dataset(training_samples_file_path)
+test_dataset = get_dataset(test_samples_file_path)
 
 # movie id embedding feature
 movie_col = tf.feature_column.categorical_column_with_identity(key='movieId', num_buckets=1001)
@@ -75,14 +76,15 @@ model = neural_cf_model_1(inputs, [movie_emb_col], [user_emb_col], [10, 10])
 model.compile(
     loss='binary_crossentropy',
     optimizer='adam',
-    metrics=['accuracy'])
+    metrics=['accuracy', tf.keras.metrics.AUC(curve='ROC'), tf.keras.metrics.AUC(curve='PR')])
 
 # train the model
 model.fit(train_dataset, epochs=5)
 
 # evaluate the model
-test_loss, test_accuracy = model.evaluate(test_dataset)
-print('\n\nTest Loss {}, Test Accuracy {}'.format(test_loss, test_accuracy))
+test_loss, test_accuracy, test_roc_auc, test_pr_auc = model.evaluate(test_dataset)
+print('\n\nTest Loss {}, Test Accuracy {}, Test ROC AUC {}, Test PR AUC {}'.format(test_loss, test_accuracy,
+                                                                                   test_roc_auc, test_pr_auc))
 
 # print some predict results
 predictions = model.predict(test_dataset)

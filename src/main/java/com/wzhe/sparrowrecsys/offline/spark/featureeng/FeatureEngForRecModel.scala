@@ -281,7 +281,7 @@ object FeatureEngForRecModel {
 
 
     //save samples as csv format
-    splitAndSaveTrainingTestSamplesByTimeStamp(samplesWithUserFeatures, "/webroot/sampledata")
+    splitAndSaveTrainingTestSamples(samplesWithUserFeatures, "/webroot/sampledata")
 
     //save user features and item features to redis for online inference
     //extractAndSaveUserFeaturesToRedis(samplesWithUserFeatures)
