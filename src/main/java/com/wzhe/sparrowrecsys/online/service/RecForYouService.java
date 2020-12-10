@@ -5,6 +5,8 @@ import com.wzhe.sparrowrecsys.online.datamanager.DataManager;
 import com.wzhe.sparrowrecsys.online.datamanager.Movie;
 import com.wzhe.sparrowrecsys.online.recprocess.RecForYouProcess;
 import com.wzhe.sparrowrecsys.online.recprocess.SimilarMovieProcess;
+import com.wzhe.sparrowrecsys.online.util.ABTest;
+import com.wzhe.sparrowrecsys.online.util.Config;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -33,6 +35,10 @@ public class RecForYouService extends HttpServlet {
             String size = request.getParameter("size");
             //ranking algorithm
             String model = request.getParameter("model");
+
+            if (Config.IS_ENABLE_AB_TEST){
+                model = ABTest.getConfigByUserId(userId);
+            }
 
             //a simple method, just fetch all the movie in the genre
             List<Movie> movies = RecForYouProcess.getRecList(Integer.parseInt(userId), Integer.parseInt(size), model);
