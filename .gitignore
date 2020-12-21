@@ -23,7 +23,9 @@
 hs_err_pid*
 
 .idea
+.DS_store
 data
 target/
 SparrowRecSys.iml
 TFRecModel.iml
+RecPySpark.iml

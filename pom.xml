@@ -10,6 +10,7 @@
 
     <properties>
         <spark.version>2.4.3</spark.version>
+        <flink.version>1.11.1</flink.version>
         <scala.version>2.11</scala.version>
         <httpclient.version>4.5.8</httpclient.version>
         <httpasyncclient.version>4.1.4</httpasyncclient.version>
@@ -206,6 +207,22 @@
             <version>20200518</version>
         </dependency>
 
+
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-java</artifactId>
+            <version>${flink.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-streaming-java_2.11</artifactId>
+            <version>${flink.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-clients_2.11</artifactId>
+            <version>${flink.version}</version>
+        </dependency>
 
     </dependencies>
 </project>
