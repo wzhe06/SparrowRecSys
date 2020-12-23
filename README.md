@@ -20,7 +20,9 @@ SparrowRecSys是一个电影推荐系统，名字SparrowRecSys（麻雀推荐系
 SparrowRecSys技术架构遵循经典的工业级深度学习推荐系统架构，包括了离线数据处理、模型训练、近线的流处理、线上模型服务、前端推荐结果显示等多个模块。以下是SparrowRecSys的架构图：
 ![alt text](https://github.com/wzhe06/SparrowRecSys/raw/master/docs/sparrowrecsysarch.png)
 
-## SparrowRecSys实现的深度推荐模型
+## SparrowRecSys实现的深度学习模型
+* Word2vec (Item2vec)
+* DeepWalk (Random Walk based Graph Embedding)
 * Embedding MLP
 * Wide&Deep
 * Nerual CF
