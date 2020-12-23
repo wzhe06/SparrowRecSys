@@ -48,6 +48,7 @@ SparrowRecSys技术架构遵循经典的工业级深度学习推荐系统架构�
 * [[DeepFM] A Factorization-Machine based Neural Network for CTR Prediction (HIT-Huawei 2017)](https://github.com/wzhe06/Ad-papers/blob/master/Deep%20Learning%20CTR%20Prediction/%5BDeepFM%5D%20A%20Factorization-Machine%20based%20Neural%20Network%20for%20CTR%20Prediction%20%28HIT-Huawei%202017%29.pdf) <br />
 * [[NFM] Neural Factorization Machines for Sparse Predictive Analytics (NUS 2017)](https://github.com/wzhe06/Ad-papers/blob/master/Deep%20Learning%20CTR%20Prediction/%5BNFM%5D%20Neural%20Factorization%20Machines%20for%20Sparse%20Predictive%20Analytics%20%28NUS%202017%29.pdf) <br />
 
-##其他相关资源
+## 其他相关资源
 * [Papers on Computational Advertising](https://github.com/wzhe06/Ad-papers) <br />
 * [Papers on Recommender System](https://github.com/wzhe06/Ad-papers) <br />
+* [CTR Model Based on Spark](https://github.com/wzhe06/SparkCTR) <br />
