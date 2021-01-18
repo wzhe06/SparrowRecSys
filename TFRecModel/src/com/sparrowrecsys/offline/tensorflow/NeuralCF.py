@@ -64,6 +64,7 @@ def neural_cf_model_2(feature_inputs, item_feature_columns, user_feature_columns
         user_tower = tf.keras.layers.Dense(num_nodes, activation='relu')(user_tower)
 
     output = tf.keras.layers.Dot(axes=1)([item_tower, user_tower])
+    output = tf.keras.layers.Dense(1, activation='sigmoid')(output)
 
     neural_cf_model = tf.keras.Model(feature_inputs, output)
     return neural_cf_model
