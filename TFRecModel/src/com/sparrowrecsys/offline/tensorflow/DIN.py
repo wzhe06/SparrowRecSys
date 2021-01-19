@@ -134,7 +134,7 @@ activation_unit = tf.keras.layers.Permute((2, 1))(activation_unit)
 activation_unit = tf.keras.layers.Multiply()([user_behaviors_emb_layer, activation_unit])
 
 # sum pooling
-user_behaviors_pooled_layers = tf.keras.layers.Lambda(lambda x: tf.keras.sum(x, axis=1))(activation_unit)
+user_behaviors_pooled_layers = tf.keras.layers.Lambda(lambda x: tf.keras.backend.sum(x, axis=1))(activation_unit)
 
 # fc layer
 concat_layer = tf.keras.layers.concatenate([user_profile_layer, user_behaviors_pooled_layers,
