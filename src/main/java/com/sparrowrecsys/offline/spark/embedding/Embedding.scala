@@ -62,15 +62,17 @@ object Embedding {
         val userId = user._1
         var userEmb = new Array[Float](embLength)
 
+        var movieCount = 0
         userEmb = user._2.foldRight[Array[Float]](userEmb)((row, newEmb) => {
           val movieId = row.getAs[String]("movieId")
           val movieEmb = word2VecModel.getVectors.get(movieId)
+          movieCount += 1
           if(movieEmb.isDefined){
             newEmb.zip(movieEmb.get).map { case (x, y) => x + y }
           }else{
             newEmb
           }
-        })
+        }).map((x: Float) => x / movieCount)
         userEmbeddings.append((userId,userEmb))
       })
 
