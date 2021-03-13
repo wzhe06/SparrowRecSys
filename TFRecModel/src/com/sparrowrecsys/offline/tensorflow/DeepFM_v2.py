@@ -1,5 +1,12 @@
 import tensorflow as tf
 
+"""
+Diff with DeepFM:
+    1. separate categorical features from dense features when processing first order features and second order features
+    2. modify original fm part with a fully crossed fm part
+"""
+
+
 # Training samples path, change to your local path
 training_samples_file_path = tf.keras.utils.get_file("trainingSamples.csv",
                                                      "file:///Users/zhewang/Workspace/SparrowRecSys/src/main"
