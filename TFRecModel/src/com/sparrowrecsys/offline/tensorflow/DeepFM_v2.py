@@ -128,6 +128,7 @@ deep_feature = tf.keras.layers.Dense(16, activation='relu')(deep_feature)
 
 class ReduceLayer(tf.keras.layers.Layer):
     def __init__(self, axis, op='sum', **kwargs):
+        super().__init__()
         self.axis = axis
         self.op = op
         assert self.op in ['sum', 'mean']
