@@ -36,6 +36,7 @@ public class RecSysServer {
         Server server = new Server(inetAddress);
 
         //get index.html path
+        // index.html: homepage template
         URL webRootLocation = this.getClass().getResource("/webroot/index.html");
         if (webRootLocation == null)
         {

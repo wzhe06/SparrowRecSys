@@ -87,6 +87,8 @@ public class DataManager {
     }
 
     //load movie embedding
+    //movieEmbPath: for loading embedding from filesystem
+    //embKey: for loading embedding from Redis
     private void loadMovieEmb(String movieEmbPath, String embKey) throws Exception{
         if (Config.EMB_DATA_SOURCE.equals(Config.DATA_SOURCE_FILE)) {
             System.out.println("Loading movie embedding from " + movieEmbPath + " ...");

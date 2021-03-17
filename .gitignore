@@ -22,10 +22,15 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 
+#Plant UML files
+*.plantuml
+
+
 .idea
 .DS_store
 data
 target/
+class_diagram/
 SparrowRecSys.iml
 TFRecModel.iml
 RecPySpark.iml
