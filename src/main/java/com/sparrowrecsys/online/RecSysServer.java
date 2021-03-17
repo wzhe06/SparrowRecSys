@@ -52,7 +52,7 @@ public class RecSysServer {
                 webRootUri.getPath() + "sampledata/links.csv",webRootUri.getPath() + "sampledata/ratings.csv",
                 webRootUri.getPath() + "modeldata/item2vecEmb.csv",
                 webRootUri.getPath() + "modeldata/userEmb.csv",
-                "i2vEmb", "uEmb");
+                "i2vEmb", "uEmb"); // movieRedisKey, userRedisKey
 
         //create server context
         ServletContextHandler context = new ServletContextHandler();

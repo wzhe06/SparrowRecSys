@@ -21,7 +21,7 @@ public class User {
     @JsonSerialize(using = RatingListSerializer.class)
     List<Rating> ratings;
 
-    //embedding of the movie
+    //embedding of the user
     @JsonIgnore
     Embedding emb;
 
