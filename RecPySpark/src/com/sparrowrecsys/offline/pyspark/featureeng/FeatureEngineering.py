@@ -46,7 +46,7 @@ def ratingFeatures(ratingSamples):
     ratingSamples.printSchema()
     ratingSamples.show()
     # calculate average movie rating score and rating count
-    movieFeatures = ratingSamples.groupBy('movieId').agg(F.count(F.lit(1)).alias('ratingCount'),
+    movieFeatures = ratingSamples.groupBy('movieId').agg(F.count("rating").alias('ratingCount'),
                                                          F.avg("rating").alias("avgRating"),
                                                          F.variance('rating').alias('ratingVar')) \
         .withColumn('avgRatingVec', udf(lambda x: Vectors.dense(x), VectorUDT())('avgRating'))
@@ -69,6 +69,7 @@ if __name__ == '__main__':
     movieSamples = spark.read.format('csv').option('header', 'true').load(movieResourcesPath)
     print("Raw Movie Samples:")
     movieSamples.show(10)
+    print("Schema")
     movieSamples.printSchema()
     print("OneHotEncoder Example:")
     oneHotEncoderExample(movieSamples)

@@ -25,6 +25,8 @@ hs_err_pid*
 #Plant UML files
 *.plantuml
 
+# venv folder
+venv/
 
 .idea
 .DS_store
