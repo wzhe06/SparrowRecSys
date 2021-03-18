@@ -51,9 +51,33 @@ def processItemSequence(spark, rawSampleDataPath):
         .withColumn("movieIdStr", array_join(F.col("movieIds"), " ")) # movieId as string
     print("movieIdStr:")
     userSeq.select("userId", "movieIdStr", "movieIds").show(10, truncate = False)
-    userSeq.limit(100).agg(F.collect_list("movieIds")).show()
-    print(userSeq.select('movieIdStr').rdd.map(lambda x: x[0].split(' ')).take(10))
+    #userSeq.limit(100).agg(F.collect_list("movieIds")).show()
+    #print(userSeq.select('movieIdStr').rdd.map(lambda x: x[0].split(' ')).take(10))
     return userSeq.select('movieIdStr').rdd.map(lambda x: x[0].split(' '))
+
+def processItemSequence1(spark, rawSampleDataPath): # refactor above code without using UDF
+    # rating data
+    customStruct = StructType([
+        StructField("userId", StringType()),
+        StructField("movieId", StringType()),
+        StructField("rating", FloatType()),
+        StructField("timestamp", IntegerType())
+    ])
+    ratingSamples = spark.read.format("csv").option("header", "true").schema(customStruct).load(rawSampleDataPath)
+    print("ratingSample and schema:")
+    ratingSamples.show(5)
+    ratingSamples.printSchema()
+    userSeq = ratingSamples \
+        .where(F.col("rating") >= 3.5) \
+        .groupBy("userId") \
+        .agg(F.sort_array(F.collect_list(F.struct("timestamp", "movieId"))).alias("sortedTimeAndMovieId")) \
+        .withColumn("sortedMovieId", F.col("sortedTimeAndMovieId.movieId")) \
+        .drop("sortedTimeAndMovieId")
+    print("movieIdStr:")
+    flatedMovieList = userSeq.select("sortedMovieId").rdd.flatMap(lambda x: x)  # same as rdd.map(lambda x: x[0])
+    # flatedMovieList = userSeq.agg(F.collect_list("sortedMovieId")).rdd.flatMap(lambda x: x[0])  # this also works
+    print(flatedMovieList.take(10))
+    return flatedMovieList
 
 def embeddingLSH(spark, movieEmbMap):
     movieEmbSeq = []
@@ -84,7 +108,7 @@ def trainItem2vec(spark, samples, embLength, embOutputPath, saveToRedis, redisKe
     if not os.path.exists(embOutputDir):
         os.makedirs(embOutputDir)
     with open(embOutputPath, 'w') as f:
-        for movie_id in model.getVectors():
+        for movie_id in model.getVectors():  # model.getVectors() -> {movie_id: List[movie_embedding]}
             vectors = " ".join([str(emb) for emb in model.getVectors()[movie_id]])
             f.write(movie_id + ":" + vectors + "\n")
     embeddingLSH(spark, model.getVectors())
@@ -201,7 +225,7 @@ if __name__ == '__main__':
     rawSampleDataPath = file_path + "/webroot/sampledata/ratings.csv"
     outputDir = file_path + "/webroot/modeldata2"
     embLength = 10
-    samples = processItemSequence(spark, rawSampleDataPath)
+    samples = processItemSequence1(spark, rawSampleDataPath)
     model = trainItem2vec(spark, samples, embLength,
                           embOutputPath=outputDir + "/item2vecEmb.csv", saveToRedis=False,
                           redisKeyPrefix="i2vEmb")
