@@ -64,7 +64,7 @@ def ratingFeatures(ratingSamples):
 if __name__ == '__main__':
     conf = SparkConf().setAppName('featureEngineering').setMaster('local')
     spark = SparkSession.builder.config(conf=conf).getOrCreate()
-    file_path = '/home/leon/Documents/SparrowRecSys/src/main/resources'
+    file_path = '../../../../../../../src/main/resources/'
     movieResourcesPath = file_path + "/webroot/sampledata/movies.csv"
     movieSamples = spark.read.format('csv').option('header', 'true').load(movieResourcesPath)
     print("Raw Movie Samples:")

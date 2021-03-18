@@ -44,7 +44,6 @@ def processItemSequence(spark, rawSampleDataPath):
     # userSeq.select("userId", "movieIdStr").show(10, truncate = False)
     return userSeq.select('movieIdStr').rdd.map(lambda x: x[0].split(' '))
 
-
 def embeddingLSH(spark, movieEmbMap):
     movieEmbSeq = []
     for key, embedding_list in movieEmbMap.items():
@@ -187,15 +186,16 @@ if __name__ == '__main__':
     conf = SparkConf().setAppName('ctrModel').setMaster('local')
     spark = SparkSession.builder.config(conf=conf).getOrCreate()
     # Change to your own filepath
-    file_path = 'file:///home/hadoop/SparrowRecSys/src/main/resources'
+    file_path = '../../../../../../../src/main/resources/'
     rawSampleDataPath = file_path + "/webroot/sampledata/ratings.csv"
+    outputDir = file_path + "/webroot/modeldata2"
     embLength = 10
     samples = processItemSequence(spark, rawSampleDataPath)
     model = trainItem2vec(spark, samples, embLength,
-                          embOutputPath=file_path[7:] + "/webroot/modeldata2/item2vecEmb.csv", saveToRedis=False,
+                          embOutputPath=outputDir + "/item2vecEmb.csv", saveToRedis=False,
                           redisKeyPrefix="i2vEmb")
-    graphEmb(samples, spark, embLength, embOutputFilename=file_path[7:] + "/webroot/modeldata2/itemGraphEmb.csv",
+    graphEmb(samples, spark, embLength, embOutputFilename=outputDir + "/itemGraphEmb.csv",
              saveToRedis=True, redisKeyPrefix="graphEmb")
     generateUserEmb(spark, rawSampleDataPath, model, embLength,
-                    embOutputPath=file_path[7:] + "/webroot/modeldata2/userEmb.csv", saveToRedis=False,
+                    embOutputPath=outputDir + "/userEmb.csv", saveToRedis=False,
                     redisKeyPrefix="uEmb")
