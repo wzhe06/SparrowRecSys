@@ -16,6 +16,13 @@ class UdfFunction:
     @staticmethod
     def sortF(movie_list, timestamp_list):
         """
+        Input parameter:
+            movie_list: List[str], list of movieIds
+            timestamp_list: List[str], list of timestamps
+
+        Return:
+            List[str]: list of sorted movieIds
+
         sort by time and return the corresponding movie sequence
         eg:
             input: movie_list:[1,2,3]
@@ -26,22 +33,26 @@ class UdfFunction:
         for m, t in zip(movie_list, timestamp_list):
             pairs.append((m, t))
         # sort by time
-        pairs = sorted(pairs, key=lambda x: x[1])
+        pairs = sorted(pairs, key=lambda x: int(x[1])) # direct string comparison is dangerous, "11" < "9" is True
         return [x[0] for x in pairs]
 
 
 def processItemSequence(spark, rawSampleDataPath):
     # rating data
     ratingSamples = spark.read.format("csv").option("header", "true").load(rawSampleDataPath)
-    # ratingSamples.show(5)
-    # ratingSamples.printSchema()
+    print("ratingSample and schema:")
+    ratingSamples.show(5)
+    ratingSamples.printSchema()
     sortUdf = udf(UdfFunction.sortF, ArrayType(StringType()))
     userSeq = ratingSamples \
         .where(F.col("rating") >= 3.5) \
         .groupBy("userId") \
         .agg(sortUdf(F.collect_list("movieId"), F.collect_list("timestamp")).alias('movieIds')) \
-        .withColumn("movieIdStr", array_join(F.col("movieIds"), " "))
-    # userSeq.select("userId", "movieIdStr").show(10, truncate = False)
+        .withColumn("movieIdStr", array_join(F.col("movieIds"), " ")) # movieId as string
+    print("movieIdStr:")
+    userSeq.select("userId", "movieIdStr", "movieIds").show(10, truncate = False)
+    userSeq.limit(100).agg(F.collect_list("movieIds")).show()
+    print(userSeq.select('movieIdStr').rdd.map(lambda x: x[0].split(' ')).take(10))
     return userSeq.select('movieIdStr').rdd.map(lambda x: x[0].split(' '))
 
 def embeddingLSH(spark, movieEmbMap):
