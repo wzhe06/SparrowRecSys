@@ -234,10 +234,11 @@ def generateUserEmb(spark, rawSampleDataPath, model, embLength, embOutputPath, s
     schema = StructType(fields)
     Vectors_df = spark.createDataFrame(Vectors_list, schema=schema)
     ratingSamples = ratingSamples.join(Vectors_df, on='movieId', how='inner')
-    # Method #1 to calculate userEmbedding by averaging movieEmbeding
+    # Method #1 to calculate userEmbedding by averaging movieEmbedding
     # result = ratingSamples.select('userId', 'emb').rdd.map(lambda x: (x[0], (x[1], 1))) \
     #     .reduceByKey(lambda a, b: ([a[0][i] + b[0][i] for i in range(embLength)], a[1]+b[1])) \
     #     .map(lambda x: (x[0], [x[1][0][i]/x[1][1] for i in range(embLength)])).collect()
+
     # Method #2 for userEmbedding calculation
     result = ratingSamples.select('userId', 'emb').groupBy('userId').agg(
         F.array(*[F.avg(F.col("emb")[i]) for i in range(embLength)]).alias('avgEmb')).rdd \
@@ -263,10 +264,10 @@ if __name__ == '__main__':
     embLength = 10
     samples = processItemSequence1(spark, rawSampleDataPath)
     model = trainItem2vec(spark, samples, embLength,  # item2Vec embedding
-                          embOutputPath=outputDir + "/item2vecEmb.csv", saveToRedis=False,
+                          embOutputPath=outputDir + "/item2vecEmb.csv", saveToRedis=True,
                           redisKeyPrefix="i2vEmb")
     graphEmb(samples, spark, embLength, embOutputFilename=outputDir + "/itemGraphEmb.csv",  # Deep-walk graph embedding
-             saveToRedis=True, redisKeyPrefix="graphEmb")
+             saveToRedis=False, redisKeyPrefix="graphEmb")
     generateUserEmb(spark, rawSampleDataPath, model, embLength,
-                    embOutputPath=outputDir + "/userEmb.csv", saveToRedis=False,
+                    embOutputPath=outputDir + "/userEmb.csv", saveToRedis=True,
                     redisKeyPrefix="uEmb")
