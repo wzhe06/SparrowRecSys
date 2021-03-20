@@ -141,7 +141,7 @@ def splitAndSaveTrainingTestSamplesByTimeStamp(samplesWithUserFeatures, file_pat
 if __name__ == '__main__':
     conf = SparkConf().setAppName('featureEngineering').setMaster('local')
     spark = SparkSession.builder.config(conf=conf).getOrCreate()
-    file_path = 'file:///home/hadoop/SparrowRecSys/src/main/resources'
+    file_path = "../../../../../../../src/main/resources/"
     movieResourcesPath = file_path + "/webroot/sampledata/movies.csv"
     ratingsResourcesPath = file_path + "/webroot/sampledata/ratings.csv"
     movieSamples = spark.read.format('csv').option('header', 'true').load(movieResourcesPath)
