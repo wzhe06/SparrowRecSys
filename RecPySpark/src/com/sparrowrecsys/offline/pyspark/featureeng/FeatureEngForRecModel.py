@@ -152,4 +152,4 @@ if __name__ == '__main__':
     samplesWithUserFeatures = addUserFeatures(samplesWithMovieFeatures)
     # save samples as csv format
     splitAndSaveTrainingTestSamples(samplesWithUserFeatures, file_path + "/webroot/sampledata")
-    # splitAndSaveTrainingTestSamplesByTimeStamp(samplesWithUserFeatures, file_path + "/webroot/sampledata")
+    splitAndSaveTrainingTestSamplesByTimeStamp(samplesWithUserFeatures, file_path + "/webroot/sampledata")
