@@ -59,8 +59,8 @@ inputs = {
 }
 
 # movie id embedding feature
-movie_col = tf.feature_column.categorical_column_with_identity(key='movieId', num_buckets=1001)
-movie_emb_col = tf.feature_column.embedding_column(movie_col, EMBEDDING_SIZE)
+#movie_col = tf.feature_column.categorical_column_with_identity(key='movieId', num_buckets=1001)
+#movie_emb_col = tf.feature_column.embedding_column(movie_col, EMBEDDING_SIZE)
 
 # user id embedding feature
 user_col = tf.feature_column.categorical_column_with_identity(key='userId', num_buckets=30001)
@@ -79,7 +79,21 @@ item_genre_col = tf.feature_column.categorical_column_with_vocabulary_list(key="
                                                                            vocabulary_list=genre_vocab)
 item_genre_emb_col = tf.feature_column.embedding_column(item_genre_col, EMBEDDING_SIZE)
 
-# user behaviors
+
+'''
+candidate_movie_col = [tf.feature_column.indicator_column(tf.feature_column.categorical_column_with_identity(key='movieId', num_buckets=1001,default_value=0))]
+recent_rate_col = [
+    tf.feature_column.indicator_column(tf.feature_column.categorical_column_with_identity(key='userRatedMovie1', num_buckets=1001,default_value=0)),
+    tf.feature_column.indicator_column(tf.feature_column.categorical_column_with_identity(key='userRatedMovie2', num_buckets=1001,default_value=0)),
+    tf.feature_column.indicator_column(tf.feature_column.categorical_column_with_identity(key='userRatedMovie3', num_buckets=1001,default_value=0)),
+    tf.feature_column.indicator_column(tf.feature_column.categorical_column_with_identity(key='userRatedMovie4', num_buckets=1001,default_value=0)),
+    tf.feature_column.indicator_column(tf.feature_column.categorical_column_with_identity(key='userRatedMovie5', num_buckets=1001,default_value=0)),
+]
+'''
+
+
+candidate_movie_col = [ tf.feature_column.numeric_column(key='movieId', default_value=0),   ]
+
 recent_rate_col = [
     tf.feature_column.numeric_column(key='userRatedMovie1', default_value=0),
     tf.feature_column.numeric_column(key='userRatedMovie2', default_value=0),
@@ -87,6 +101,8 @@ recent_rate_col = [
     tf.feature_column.numeric_column(key='userRatedMovie4', default_value=0),
     tf.feature_column.numeric_column(key='userRatedMovie5', default_value=0),
 ]
+
+
 
 # user profile
 user_profile = [
@@ -106,15 +122,20 @@ context_features = [
     tf.feature_column.numeric_column('movieRatingStddev'),
 ]
 
-candidate_emb_layer = tf.keras.layers.DenseFeatures([movie_emb_col])(inputs)
+candidate_layer = tf.keras.layers.DenseFeatures(candidate_movie_col)(inputs)
 user_behaviors_layer = tf.keras.layers.DenseFeatures(recent_rate_col)(inputs)
 user_profile_layer = tf.keras.layers.DenseFeatures(user_profile)(inputs)
 context_features_layer = tf.keras.layers.DenseFeatures(context_features)(inputs)
 
 # Activation Unit
-user_behaviors_emb_layer = tf.keras.layers.Embedding(input_dim=1001,
-                                                     output_dim=EMBEDDING_SIZE,
-                                                     mask_zero=True)(user_behaviors_layer)  # mask zero
+
+movie_emb_layer = tf.keras.layers.Embedding(input_dim=1001,output_dim=EMBEDDING_SIZE,mask_zero=True)# mask zero
+
+user_behaviors_emb_layer = movie_emb_layer(user_behaviors_layer) 
+
+candidate_emb_layer = movie_emb_layer(candidate_layer) 
+candidate_emb_layer = tf.squeeze(candidate_emb_layer,axis=1)
+
 repeated_candidate_emb_layer = tf.keras.layers.RepeatVector(RECENT_MOVIES)(candidate_emb_layer)
 
 activation_sub_layer = tf.keras.layers.Subtract()([user_behaviors_emb_layer,
