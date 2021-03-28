@@ -1,7 +1,13 @@
 '''
-diff with DIN
-1、GRU with attentional update gate (AUGRU) 
-2、auxiliary loss function with click or not click  movie(negetive sampleming)
+Author:
+    zcxia23, 854695170@qq.com
+
+Diff with DIN:
+    1、GRU with attentional update gate (AUGRU) 
+    2、auxiliary loss function with click or not click  movie(negetive sampleming)
+
+Reference:
+    [1] Zhou G ,  Mou N ,  Fan Y , et al. Deep Interest Evolution Network for Click-Through Rate Prediction[J].  2018.
 '''
 import pandas as pd
 import tensorflow as tf
