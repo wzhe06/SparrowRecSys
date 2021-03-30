@@ -36,3 +36,4 @@ class_diagram/
 SparrowRecSys.iml
 TFRecModel.iml
 RecPySpark.iml
+/TorchRecModel/src/com/sparrowrecsys/offline/pytorch/.ipynb_checkpoints/
