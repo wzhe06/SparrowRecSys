@@ -1,13 +1,20 @@
 import tensorflow as tf
 
+import pathlib
+current_working_directory = pathlib.Path().absolute()
+train_abs_path = current_working_directory / \
+    "src/main/resources/webroot/sampledata/trainingSamples.csv"
+test_abs_path = current_working_directory / \
+    "src/main/resources/webroot/sampledata/testSamples.csv"
+print(train_abs_path)
+print(test_abs_path)
+
 # Training samples path, change to your local path
 training_samples_file_path = tf.keras.utils.get_file("trainingSamples.csv",
-                                                     "file:///Users/zhewang/Workspace/SparrowRecSys/src/main"
-                                                     "/resources/webroot/sampledata/trainingSamples.csv")
+                                                     "file://" + str(train_abs_path))
 # Test samples path, change to your local path
 test_samples_file_path = tf.keras.utils.get_file("testSamples.csv",
-                                                 "file:///Users/zhewang/Workspace/SparrowRecSys/src/main"
-                                                 "/resources/webroot/sampledata/testSamples.csv")
+                                                 "file://" + str(test_abs_path))
 
 
 # load sample as tf dataset
@@ -50,12 +57,14 @@ for feature, vocab in GENRE_FEATURES.items():
     emb_col = tf.feature_column.embedding_column(cat_col, 10)
     categorical_columns.append(emb_col)
 # movie id embedding feature
-movie_col = tf.feature_column.categorical_column_with_identity(key='movieId', num_buckets=1001)
+movie_col = tf.feature_column.categorical_column_with_identity(
+    key='movieId', num_buckets=1001)
 movie_emb_col = tf.feature_column.embedding_column(movie_col, 10)
 categorical_columns.append(movie_emb_col)
 
 # user id embedding feature
-user_col = tf.feature_column.categorical_column_with_identity(key='userId', num_buckets=30001)
+user_col = tf.feature_column.categorical_column_with_identity(
+    key='userId', num_buckets=30001)
 user_emb_col = tf.feature_column.embedding_column(user_col, 10)
 categorical_columns.append(user_emb_col)
 
@@ -86,7 +95,8 @@ model.compile(
 model.fit(train_dataset, epochs=5)
 
 # evaluate the model
-test_loss, test_accuracy, test_roc_auc, test_pr_auc = model.evaluate(test_dataset)
+test_loss, test_accuracy, test_roc_auc, test_pr_auc = model.evaluate(
+    test_dataset)
 print('\n\nTest Loss {}, Test Accuracy {}, Test ROC AUC {}, Test PR AUC {}'.format(test_loss, test_accuracy,
                                                                                    test_roc_auc, test_pr_auc))
 

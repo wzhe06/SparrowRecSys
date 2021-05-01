@@ -1,16 +1,24 @@
 import tensorflow as tf
 
+import pathlib
+current_working_directory = pathlib.Path().absolute()
+train_abs_path = current_working_directory / \
+    "src/main/resources/webroot/sampledata/trainingSamples.csv"
+test_abs_path = current_working_directory / \
+    "src/main/resources/webroot/sampledata/testSamples.csv"
+print(train_abs_path)
+print(test_abs_path)
+
 # Training samples path, change to your local path
 training_samples_file_path = tf.keras.utils.get_file("trainingSamples.csv",
-                                                     "file:///Users/zhewang/Workspace/SparrowRecSys/src/main"
-                                                     "/resources/webroot/sampledata/trainingSamples.csv")
+                                                     "file://" + str(train_abs_path))
 # Test samples path, change to your local path
 test_samples_file_path = tf.keras.utils.get_file("testSamples.csv",
-                                                 "file:///Users/zhewang/Workspace/SparrowRecSys/src/main"
-                                                 "/resources/webroot/sampledata/testSamples.csv")
-
+                                                 "file://" + str(test_abs_path))
 
 # load sample as tf dataset
+
+
 def get_dataset(file_path):
     dataset = tf.data.experimental.make_csv_dataset(
         file_path,
@@ -63,7 +71,8 @@ inputs = {
 #movie_emb_col = tf.feature_column.embedding_column(movie_col, EMBEDDING_SIZE)
 
 # user id embedding feature
-user_col = tf.feature_column.categorical_column_with_identity(key='userId', num_buckets=30001)
+user_col = tf.feature_column.categorical_column_with_identity(
+    key='userId', num_buckets=30001)
 user_emb_col = tf.feature_column.embedding_column(user_col, EMBEDDING_SIZE)
 
 # genre features vocabulary
@@ -73,11 +82,13 @@ genre_vocab = ['Film-Noir', 'Action', 'Adventure', 'Horror', 'Romance', 'War', '
 # user genre embedding feature
 user_genre_col = tf.feature_column.categorical_column_with_vocabulary_list(key="userGenre1",
                                                                            vocabulary_list=genre_vocab)
-user_genre_emb_col = tf.feature_column.embedding_column(user_genre_col, EMBEDDING_SIZE)
+user_genre_emb_col = tf.feature_column.embedding_column(
+    user_genre_col, EMBEDDING_SIZE)
 # item genre embedding feature
 item_genre_col = tf.feature_column.categorical_column_with_vocabulary_list(key="movieGenre1",
                                                                            vocabulary_list=genre_vocab)
-item_genre_emb_col = tf.feature_column.embedding_column(item_genre_col, EMBEDDING_SIZE)
+item_genre_emb_col = tf.feature_column.embedding_column(
+    item_genre_col, EMBEDDING_SIZE)
 
 
 '''
@@ -92,7 +103,8 @@ recent_rate_col = [
 '''
 
 
-candidate_movie_col = [ tf.feature_column.numeric_column(key='movieId', default_value=0),   ]
+candidate_movie_col = [tf.feature_column.numeric_column(
+    key='movieId', default_value=0), ]
 
 recent_rate_col = [
     tf.feature_column.numeric_column(key='userRatedMovie1', default_value=0),
@@ -101,7 +113,6 @@ recent_rate_col = [
     tf.feature_column.numeric_column(key='userRatedMovie4', default_value=0),
     tf.feature_column.numeric_column(key='userRatedMovie5', default_value=0),
 ]
-
 
 
 # user profile
@@ -125,18 +136,21 @@ context_features = [
 candidate_layer = tf.keras.layers.DenseFeatures(candidate_movie_col)(inputs)
 user_behaviors_layer = tf.keras.layers.DenseFeatures(recent_rate_col)(inputs)
 user_profile_layer = tf.keras.layers.DenseFeatures(user_profile)(inputs)
-context_features_layer = tf.keras.layers.DenseFeatures(context_features)(inputs)
+context_features_layer = tf.keras.layers.DenseFeatures(
+    context_features)(inputs)
 
 # Activation Unit
 
-movie_emb_layer = tf.keras.layers.Embedding(input_dim=1001,output_dim=EMBEDDING_SIZE,mask_zero=True)# mask zero
+movie_emb_layer = tf.keras.layers.Embedding(
+    input_dim=1001, output_dim=EMBEDDING_SIZE, mask_zero=True)  # mask zero
 
-user_behaviors_emb_layer = movie_emb_layer(user_behaviors_layer) 
+user_behaviors_emb_layer = movie_emb_layer(user_behaviors_layer)
 
-candidate_emb_layer = movie_emb_layer(candidate_layer) 
-candidate_emb_layer = tf.squeeze(candidate_emb_layer,axis=1)
+candidate_emb_layer = movie_emb_layer(candidate_layer)
+candidate_emb_layer = tf.squeeze(candidate_emb_layer, axis=1)
 
-repeated_candidate_emb_layer = tf.keras.layers.RepeatVector(RECENT_MOVIES)(candidate_emb_layer)
+repeated_candidate_emb_layer = tf.keras.layers.RepeatVector(
+    RECENT_MOVIES)(candidate_emb_layer)
 
 activation_sub_layer = tf.keras.layers.Subtract()([user_behaviors_emb_layer,
                                                    repeated_candidate_emb_layer])  # element-wise sub
@@ -148,14 +162,17 @@ activation_all = tf.keras.layers.concatenate([activation_sub_layer, user_behavio
 
 activation_unit = tf.keras.layers.Dense(32)(activation_all)
 activation_unit = tf.keras.layers.PReLU()(activation_unit)
-activation_unit = tf.keras.layers.Dense(1, activation='sigmoid')(activation_unit)
+activation_unit = tf.keras.layers.Dense(
+    1, activation='sigmoid')(activation_unit)
 activation_unit = tf.keras.layers.Flatten()(activation_unit)
 activation_unit = tf.keras.layers.RepeatVector(EMBEDDING_SIZE)(activation_unit)
 activation_unit = tf.keras.layers.Permute((2, 1))(activation_unit)
-activation_unit = tf.keras.layers.Multiply()([user_behaviors_emb_layer, activation_unit])
+activation_unit = tf.keras.layers.Multiply()(
+    [user_behaviors_emb_layer, activation_unit])
 
 # sum pooling
-user_behaviors_pooled_layers = tf.keras.layers.Lambda(lambda x: tf.keras.backend.sum(x, axis=1))(activation_unit)
+user_behaviors_pooled_layers = tf.keras.layers.Lambda(
+    lambda x: tf.keras.backend.sum(x, axis=1))(activation_unit)
 
 # fc layer
 concat_layer = tf.keras.layers.concatenate([user_profile_layer, user_behaviors_pooled_layers,
@@ -177,7 +194,8 @@ model.compile(
 model.fit(train_dataset, epochs=5)
 
 # evaluate the model
-test_loss, test_accuracy, test_roc_auc, test_pr_auc = model.evaluate(test_dataset)
+test_loss, test_accuracy, test_roc_auc, test_pr_auc = model.evaluate(
+    test_dataset)
 print('\n\nTest Loss {}, Test Accuracy {}, Test ROC AUC {}, Test PR AUC {}'.format(test_loss, test_accuracy,
                                                                                    test_roc_auc, test_pr_auc))
 
