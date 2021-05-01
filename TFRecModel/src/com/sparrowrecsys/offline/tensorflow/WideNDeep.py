@@ -1,16 +1,23 @@
 import tensorflow as tf
+import pathlib
+current_working_directory = pathlib.Path().absolute()
+train_abs_path = current_working_directory / \
+    "src/main/resources/webroot/sampledata/trainingSamples.csv"
+test_abs_path = current_working_directory / \
+    "src/main/resources/webroot/sampledata/testSamples.csv"
+print(train_abs_path)
+print(test_abs_path)
 
 # Training samples path, change to your local path
 training_samples_file_path = tf.keras.utils.get_file("trainingSamples.csv",
-                                                     "file:///Users/zhewang/Workspace/SparrowRecSys/src/main"
-                                                     "/resources/webroot/sampledata/trainingSamples.csv")
+                                                     "file://" + str(train_abs_path))
 # Test samples path, change to your local path
 test_samples_file_path = tf.keras.utils.get_file("testSamples.csv",
-                                                 "file:///Users/zhewang/Workspace/SparrowRecSys/src/main"
-                                                 "/resources/webroot/sampledata/testSamples.csv")
-
+                                                 "file://" + str(test_abs_path))
 
 # load sample as tf dataset
+
+
 def get_dataset(file_path):
     dataset = tf.data.experimental.make_csv_dataset(
         file_path,
@@ -50,12 +57,14 @@ for feature, vocab in GENRE_FEATURES.items():
     emb_col = tf.feature_column.embedding_column(cat_col, 10)
     categorical_columns.append(emb_col)
 # movie id embedding feature
-movie_col = tf.feature_column.categorical_column_with_identity(key='movieId', num_buckets=1001)
+movie_col = tf.feature_column.categorical_column_with_identity(
+    key='movieId', num_buckets=1001)
 movie_emb_col = tf.feature_column.embedding_column(movie_col, 10)
 categorical_columns.append(movie_emb_col)
 
 # user id embedding feature
-user_col = tf.feature_column.categorical_column_with_identity(key='userId', num_buckets=30001)
+user_col = tf.feature_column.categorical_column_with_identity(
+    key='userId', num_buckets=30001)
 user_emb_col = tf.feature_column.embedding_column(user_col, 10)
 categorical_columns.append(user_emb_col)
 
@@ -69,8 +78,10 @@ numerical_columns = [tf.feature_column.numeric_column('releaseYear'),
                      tf.feature_column.numeric_column('userRatingStddev')]
 
 # cross feature between current movie and user historical movie
-rated_movie = tf.feature_column.categorical_column_with_identity(key='userRatedMovie1', num_buckets=1001)
-crossed_feature = tf.feature_column.indicator_column(tf.feature_column.crossed_column([movie_col, rated_movie], 10000))
+rated_movie = tf.feature_column.categorical_column_with_identity(
+    key='userRatedMovie1', num_buckets=1001)
+crossed_feature = tf.feature_column.indicator_column(
+    tf.feature_column.crossed_column([movie_col, rated_movie], 10000))
 
 # define input for keras model
 inputs = {
@@ -98,7 +109,8 @@ inputs = {
 
 # wide and deep model architecture
 # deep part for all input features
-deep = tf.keras.layers.DenseFeatures(numerical_columns + categorical_columns)(inputs)
+deep = tf.keras.layers.DenseFeatures(
+    numerical_columns + categorical_columns)(inputs)
 deep = tf.keras.layers.Dense(128, activation='relu')(deep)
 deep = tf.keras.layers.Dense(128, activation='relu')(deep)
 # wide part for cross feature
@@ -117,7 +129,8 @@ model.compile(
 model.fit(train_dataset, epochs=5)
 
 # evaluate the model
-test_loss, test_accuracy, test_roc_auc, test_pr_auc = model.evaluate(test_dataset)
+test_loss, test_accuracy, test_roc_auc, test_pr_auc = model.evaluate(
+    test_dataset)
 print('\n\nTest Loss {}, Test Accuracy {}, Test ROC AUC {}, Test PR AUC {}'.format(test_loss, test_accuracy,
                                                                                    test_roc_auc, test_pr_auc))
 
