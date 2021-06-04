@@ -12,7 +12,7 @@
         <spark.version>2.4.3</spark.version>
         <flink.version>1.11.1</flink.version>
         <scala.version>2.11</scala.version>
-        <httpclient.version>4.5.8</httpclient.version>
+        <httpclient.version>4.5.13</httpclient.version>
         <httpasyncclient.version>4.1.4</httpasyncclient.version>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
