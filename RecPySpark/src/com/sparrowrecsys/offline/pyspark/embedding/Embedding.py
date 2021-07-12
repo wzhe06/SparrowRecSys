@@ -39,10 +39,10 @@ def processItemSequence(spark, rawSampleDataPath):
     userSeq = ratingSamples \
         .where(F.col("rating") >= 3.5) \
         .groupBy("userId") \
-        .agg(sortUdf(F.collect_list("movieId"), F.collect_list("timestamp")).alias('movieIds')) \
-        .withColumn("movieIdStr", array_join(F.col("movieIds"), " "))
+        .agg(sortUdf(F.collect_list("movieId"), F.collect_list("timestamp")).alias('movieIds'))
+
     # userSeq.select("userId", "movieIdStr").show(10, truncate = False)
-    return userSeq.select('movieIdStr').rdd.map(lambda x: x[0].split(' '))
+    return userSeq.rdd.map(lambda x: x[1])
 
 
 def embeddingLSH(spark, movieEmbMap):
