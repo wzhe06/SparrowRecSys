@@ -120,7 +120,7 @@ object GBDTLR extends Serializable {
     import spark.implicits._
 
     val file_path = "file://" +
-      "/Users/v_lixiang13/Desktop/SparrowRecSys/src/main/resources"
+      "/Users/zhewang/Workspace/SparrowRecSys/src/main/resources"
     val ratingResourcesPath = file_path + "/webroot/sampledata/trainingSamples.csv"
     val ratingSampes = spark.read.format("csv").option("header", true).load(ratingResourcesPath)
       .withColumn("userIdInt", col("userId").cast(DoubleType))
