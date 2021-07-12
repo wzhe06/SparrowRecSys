@@ -175,8 +175,9 @@ def generateUserEmb(spark, rawSampleDataPath, model, embLength, embOutputPath, s
     schema = StructType(fields)
     Vectors_df = spark.createDataFrame(Vectors_list, schema=schema)
     ratingSamples = ratingSamples.join(Vectors_df, on='movieId', how='inner')
-    result = ratingSamples.select('userId', 'emb').rdd.map(lambda x: (x[0], x[1])) \
-        .reduceByKey(lambda a, b: [a[i] + b[i] for i in range(len(a))]).collect()
+    result = ratingSamples.select('userId', 'emb').rdd.map(lambda x: (x[0], (x[1], 1))) \
+        .reduceByKey(lambda a, b: ([a[0][i] + b[0][i] for i in range(len(a[0]))], a[1] + b[1])) \
+        .map(lambda x: (x[0], [v / x[1][1] for v in x[1][0]])).collect()
     with open(embOutputPath, 'w') as f:
         for row in result:
             vectors = " ".join([str(emb) for emb in row[1]])
