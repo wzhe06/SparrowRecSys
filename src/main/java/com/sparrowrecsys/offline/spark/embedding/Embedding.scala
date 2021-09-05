@@ -162,8 +162,10 @@ object Embedding {
 
       val probDistribution = transitionMatrix(curElement)
       val randomDouble = Random.nextDouble()
+      var accumulateProb: Double = 0D
       breakable { for ((item, prob) <- probDistribution) {
-        if (randomDouble >= prob){
+        accumulateProb += prob
+        if (accumulateProb >= randomDouble){
           curElement = item
           break
         }
