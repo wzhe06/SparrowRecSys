@@ -52,5 +52,5 @@ SparrowRecSys技术架构遵循经典的工业级深度学习推荐系统架构�
 
 ## 其他相关资源
 * [Papers on Computational Advertising](https://github.com/wzhe06/Ad-papers) <br />
-* [Papers on Recommender System](https://github.com/wzhe06/Ad-papers) <br />
+* [Papers on Recommender System](https://github.com/wzhe06/Reco-papers) <br />
 * [CTR Model Based on Spark](https://github.com/wzhe06/SparkCTR) <br />
