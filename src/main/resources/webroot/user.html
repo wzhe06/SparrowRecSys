@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html class="no-js" xmlns="http://www.w3.org/1999/html">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <!--<base href="/">-->
+    <base href="."/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <title>Home | Sparrow RecSys</title>
+    <meta name="description" content=""/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="theme-color" content="#ffffff"/>
+    <link type="text/plain" rel="author"/>
+    <link href="./css/style.css" rel="stylesheet"/>
+    <link rel="shortcut icon" href="./resources/favicon.ico">
+    <script src="./js/jquery-3.2.1.min.js"></script>
+    <script src="./js/recsys.js?v=1.33"></script>
+    <style>
+        .movie-row .movie-row-bounds .movie-row-item{
+            display: block;
+        }
+
+        .movie-card-md1{
+            margin:0 5px 15px 0
+        }
+    </style>
+</head>
+<body id="root">
+<div>
+    <header class="base-compact-header">
+        <div class="ml4-container base-header-primary-container">
+            <div class="base-header-logo-container">
+                <span class="base-header-logo-main">
+                    <a href="."><img alt="Sparrow RecSys Logo" height="30px" src="./images/sparrowrecsyslogo.png"/></a>
+                </span>
+            </div>
+            <div class="base-header-search-container">
+                <form class="form-inline ng-pristine ng-valid ng-touched" novalidate="" role="form">
+                    <div class="input-group input-group-sm base-header-search-box">
+               <span class="twitter-typeahead" style="position: relative; display: inline-block;">
+                   <input class="form-control input-sm no-glow tt-input ng-pristine ng-valid ng-touched"
+                          id="omnisearch-typeahead" name="currentVal" type="text" spellcheck="false" dir="auto"
+                          aria-owns="omnisearch-typeahead_listbox" role="combobox"
+                          aria-readonly="true" aria-autocomplete="list"
+                          style="position: relative; vertical-align: top; background-color: transparent;"/>
+                </span>
+                        <span class="input-group-btn">
+                            <button class="btn btn-default btn-sm no-glow">
+                                <i class="fa fa-search"></i>
+                            </button>
+                        </span>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </header>
+    <div class="base-compact-header-spacer"></div>
+    <div class="ml4-container" style="min-height: 920px;">
+        <div id="main-container">
+            <div class="movie-alt" id="user-details-container">
+            </div>
+            <div class="frontpage" id="recPage">
+                <div class="frontpage-section-top">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h1>give feedback</h1>
+                            <div class="jumbotron ml4-jumbotron" style="padding-top: 0;">
+                                <p> To collect your feedback, please create issue on our project github homepage
+                                    <a href="https://github.com/wzhe06/SparrowRecSys/issues"
+                                       target="_blank">Sparrow RecSys Github</a>.</p>
+                                <p>
+                                    <button class="btn btn-primary btn-lg"
+                                            onclick="location.href='https://github.com/wzhe06/SparrowRecSys/issues';">
+                                        give feedback
+                                    </button>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer class="base-compact-footer">
+        <div class="ml4-container">
+            <div class="row ml4-footer-row">
+                <div class="col-md-2">
+                    <ul class="list-unstyled">
+                        <li class="header section-header">learn more</li>
+                        <li><a href="https://github.com/wzhe06/SparrowRecSys">about
+                            Sparrow RecSys</a></li>
+                        <li><a
+                                href="https://wzhe.me">about Zhe Wang</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-2">
+                    <ul class="list-unstyled">
+                        <li class="header section-header">Zhe Wang's wechat</li>
+                        <li>
+                            <img alt="GroupLens logo" src="./images/wzscan.jpg" width="110"/>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-md-5 col-md-offset-1">
+                    <div class="gl-logo section-header">
+                        <img alt="GroupLens logo" height="25"
+                             src="./resources/grouplens-logo-110.png" width="110"/>
+                    </div>
+                    <p> Sparrow RecSys is an open source recommender system, which is founded and maintained by <a
+                            href="https://github.com/wzhe06">Wang Zhe</a>, a senior machine learning engineer. </p>
+                    <p> version 1.0.0
+                        <!----></p>
+                    <p>copyright &copy; 2020</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+</div>
+</body>
+
+<script type="text/javascript">
+
+function getQueryString(name, windowLocation) {
+    var reg = new RegExp('(^|&)' + name + '=([^&]*)(&|$)', 'i');
+    var r = windowLocation.search.substr(1).match(reg);
+    if (r != null) {
+        return unescape(r[2]);
+    }
+    return null;
+};
+
+var windowLocation = window.location;
+var userId = getQueryString("id",windowLocation);
+var model = getQueryString("model",windowLocation);
+if(null == model){
+    model = "emb";
+    //model = "nerualcf"
+}
+
+var baseUrl = windowLocation.protocol + "//" + windowLocation.host + "/"
+
+addUserDetails("user-details-container", userId, baseUrl);
+addRecForYou("#recPage", "recForYou", userId, model, baseUrl);
+addUserHistory("#recPage", "userHistory", userId, baseUrl);
+
+</script>
+</html>
