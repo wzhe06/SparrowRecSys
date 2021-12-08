@@ -116,27 +116,124 @@ def addUserFeatures(samplesWithMovieFeatures):
     return samplesWithUserFeatures
 
 
-def splitAndSaveTrainingTestSamples(samplesWithUserFeatures, file_path, re):
-    smallSamples = samplesWithUserFeatures.sample(0.1)
-    training, test = smallSamples.randomSplit((0.8, 0.2))
-    # trainingSavePath = file_path + '/trainingSamples.csv'
-    # testSavePath = file_path + '/testSamples.csv'
-    re.hmset('', {'name': 'Jerry', 'species': 'mouse'})
-    re.hmset('info_2', {'name': 'Jerry', 'species': 'mouse'})
-    # training.repartition(1).write.csv(trainingSavePath)
-    # test.repartition(1).write.csv(testSavePath)
+# def splitAndSaveTrainingTestSamples(samplesWithUserFeatures, file_path):
+#     smallSamples = samplesWithUserFeatures.sample(0.1)
+#     training, test = smallSamples.randomSplit((0.8, 0.2))
+#     trainingSavePath = file_path + '/trainingSamples'
+#     testSavePath = file_path + '/testSamples'
+#     training.repartition(1).write.option("header", "true").mode('overwrite') \
+#         .csv(trainingSavePath)
+#     test.repartition(1).write.option("header", "true").mode('overwrite') \
+#         .csv(testSavePath)
+#
+#
+# def splitAndSaveTrainingTestSamplesByTimeStamp(samplesWithUserFeatures, file_path):
+#     smallSamples = samplesWithUserFeatures.sample(0.1).withColumn("timestampLong", F.col("timestamp").cast(LongType()))
+#     quantile = smallSamples.stat.approxQuantile("timestampLong", [0.8], 0.05)
+#     splitTimestamp = quantile[0]
+#     training = smallSamples.where(F.col("timestampLong") <= splitTimestamp).drop("timestampLong")
+#     test = smallSamples.where(F.col("timestampLong") > splitTimestamp).drop("timestampLong")
+#     trainingSavePath = file_path + '/trainingSamples'
+#     testSavePath = file_path + '/testSamples'
+#     training.repartition(1).write.option("header", "true").mode('overwrite') \
+#         .csv(trainingSavePath)
+#     test.repartition(1).write.option("header", "true").mode('overwrite') \
+#         .csv(testSavePath)
 
+def extractAndSaveUserFeaturesToRedis(samples, re):
+    userLatestSamples = samples.withColumn("userRowNum", row_number()
+                                               .over(Window.partitionBy("userId")
+                                                     .orderBy(col("timestamp").desc)))
+    .filter(col("userRowNum") === 1)
+    .select("userId","userRatedMovie1", "userRatedMovie2","userRatedMovie3","userRatedMovie4","userRatedMovie5",
+            "userRatingCount", "userAvgReleaseYear", "userReleaseYearStddev", "userAvgRating", "userRatingStddev",
+            "userGenre1", "userGenre2","userGenre3","userGenre4","userGenre5")
+    .na.fill("")
 
-def splitAndSaveTrainingTestSamplesByTimeStamp(samplesWithUserFeatures, file_path, r):
-    smallSamples = samplesWithUserFeatures.sample(0.1).withColumn("timestampLong", F.col("timestamp").cast(LongType()))
-    quantile = smallSamples.stat.approxQuantile("timestampLong", [0.8], 0.05)
-    splitTimestamp = quantile[0]
-    training = smallSamples.where(F.col("timestampLong") <= splitTimestamp).drop("timestampLong")
-    test = smallSamples.where(F.col("timestampLong") > splitTimestamp).drop("timestampLong")
-    trainingSavePath = file_path + '/trainingSamples'
-    testSavePath = file_path + '/testSamples'
-    training.repartition(1).write.option("header", "true").mode('overwrite').csv(trainingSavePath)
-    test.repartition(1).write.option("header", "true").mode('overwrite').csv(testSavePath)
+userLatestSamples.printSchema()
+userLatestSamples.show(100, truncate = false)
+
+val userFeaturePrefix = "uf:"
+
+val re = new Jedis(redisEndpoint, redisPort)
+val params = SetParams.setParams()
+//set ttl to 24hs * 30
+params.ex(60 * 60 * 24 * 30)
+val sampleArray = userLatestSamples.collect()
+println("total user size:" + sampleArray.length)
+var insertedUserNumber = 0
+val userCount = sampleArray.length
+for (sample <- sampleArray){
+    val userKey = userFeaturePrefix + sample.getAs[String]("userId")
+val valueMap = mutable.Map[String, String]()
+valueMap("userRatedMovie1") = sample.getAs[String]("userRatedMovie1")
+valueMap("userRatedMovie2") = sample.getAs[String]("userRatedMovie2")
+valueMap("userRatedMovie3") = sample.getAs[String]("userRatedMovie3")
+valueMap("userRatedMovie4") = sample.getAs[String]("userRatedMovie4")
+valueMap("userRatedMovie5") = sample.getAs[String]("userRatedMovie5")
+valueMap("userGenre1") = sample.getAs[String]("userGenre1")
+valueMap("userGenre2") = sample.getAs[String]("userGenre2")
+valueMap("userGenre3") = sample.getAs[String]("userGenre3")
+valueMap("userGenre4") = sample.getAs[String]("userGenre4")
+valueMap("userGenre5") = sample.getAs[String]("userGenre5")
+valueMap("userRatingCount") = sample.getAs[Long]("userRatingCount").toString
+valueMap("userAvgReleaseYear") = sample.getAs[Int]("userAvgReleaseYear").toString
+valueMap("userReleaseYearStddev") = sample.getAs[String]("userReleaseYearStddev")
+valueMap("userAvgRating") = sample.getAs[String]("userAvgRating")
+valueMap("userRatingStddev") = sample.getAs[String]("userRatingStddev")
+
+re.hset(userKey, JavaConversions.mapAsJavaMap(valueMap))
+insertedUserNumber += 1
+if (insertedUserNumber % 100 ==0){
+println(insertedUserNumber + "/" + userCount + "...")
+}
+}
+
+re.close()
+userLatestSamples
+
+def extractAndSaveMovieFeaturesToRedis(samples, re):
+    movieLatestSamples = samples.withColumn("movieRowNum", row_number()
+                                            .over(Window.partitionBy("movieId")
+                                                  .orderBy(col("timestamp").desc)))
+    .filter(col("movieRowNum") === 1)
+    .select("movieId","releaseYear", "movieGenre1","movieGenre2","movieGenre3","movieRatingCount",
+            "movieAvgRating", "movieRatingStddev")
+    .na.fill("")
+
+movieLatestSamples.printSchema()
+movieLatestSamples.show(100, truncate = false)
+
+val movieFeaturePrefix = "mf:"
+
+val redisClient = new Jedis(redisEndpoint, redisPort)
+val params = SetParams.setParams()
+//set ttl to 24hs * 30
+params.ex(60 * 60 * 24 * 30)
+val sampleArray = movieLatestSamples.collect()
+println("total movie size:" + sampleArray.length)
+var insertedMovieNumber = 0
+val movieCount = sampleArray.length
+for (sample <- sampleArray){
+    val movieKey = movieFeaturePrefix + sample.getAs[String]("movieId")
+val valueMap = mutable.Map[String, String]()
+valueMap("movieGenre1") = sample.getAs[String]("movieGenre1")
+valueMap("movieGenre2") = sample.getAs[String]("movieGenre2")
+valueMap("movieGenre3") = sample.getAs[String]("movieGenre3")
+valueMap("movieRatingCount") = sample.getAs[Long]("movieRatingCount").toString
+valueMap("releaseYear") = sample.getAs[Int]("releaseYear").toString
+valueMap("movieAvgRating") = sample.getAs[String]("movieAvgRating")
+valueMap("movieRatingStddev") = sample.getAs[String]("movieRatingStddev")
+
+redisClient.hset(movieKey, JavaConversions.mapAsJavaMap(valueMap))
+insertedMovieNumber += 1
+if (insertedMovieNumber % 100 ==0){
+println(insertedMovieNumber + "/" + movieCount + "...")
+}
+}
+
+redisClient.close()
+movieLatestSamples
 
 
 if __name__ == '__main__':
@@ -155,5 +252,8 @@ if __name__ == '__main__':
     samplesWithMovieFeatures = addMovieFeatures(movieSamples, ratingSamplesWithLabel)
     samplesWithUserFeatures = addUserFeatures(samplesWithMovieFeatures)
     # save samples as csv format
-    splitAndSaveTrainingTestSamples(samplesWithUserFeatures, file_path + "/Library/sampleData", r)
-    # splitAndSaveTrainingTestSamplesByTimeStamp(samplesWithUserFeatures, file_path + "/Library/sampleData", r)
+    # splitAndSaveTrainingTestSamples(samplesWithUserFeatures, file_path + "/webroot/sampledata")
+    # splitAndSaveTrainingTestSamplesByTimeStamp(samplesWithUserFeatures, file_path + "/webroot/sampledata")
+
+    extractAndSaveUserFeaturesToRedis(samplesWithUserFeatures, r)
+    extractAndSaveMovieFeaturesToRedis(samplesWithUserFeatures, r)
