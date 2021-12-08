@@ -141,99 +141,63 @@ def addUserFeatures(samplesWithMovieFeatures):
 #         .csv(testSavePath)
 
 def extractAndSaveUserFeaturesToRedis(samples, re):
-    userLatestSamples = samples.withColumn("userRowNum", row_number()
-                                               .over(Window.partitionBy("userId")
-                                                     .orderBy(col("timestamp").desc)))
-    .filter(col("userRowNum") === 1)
-    .select("userId","userRatedMovie1", "userRatedMovie2","userRatedMovie3","userRatedMovie4","userRatedMovie5",
-            "userRatingCount", "userAvgReleaseYear", "userReleaseYearStddev", "userAvgRating", "userRatingStddev",
-            "userGenre1", "userGenre2","userGenre3","userGenre4","userGenre5")
-    .na.fill("")
+    userLatestSamples = samples.withColumn("userRowNum",
+                                           F.count(F.lit(1)).over(
+                                               sql.Window.partitionBy("userId").orderBy(F.desc(F.col("timestamp"))))) \
+        .filter(F.col("userRowNum") == 1) \
+        .select("userId", "userRatedMovie1", "userRatedMovie2", "userRatedMovie3", "userRatedMovie4",
+                "userRatedMovie5", "userRatingCount", "userAvgReleaseYear", "userReleaseYearStddev",
+                "userAvgRating", "userRatingStddev", "userGenre1", "userGenre2",
+                "userGenre3", "userGenre4", "userGenre5") \
+        .na.fill("")
 
-userLatestSamples.printSchema()
-userLatestSamples.show(100, truncate = false)
+    userFeaturePrefix = "uf:"
 
-val userFeaturePrefix = "uf:"
+    sampleArray = userLatestSamples.collect()
+    print("total movie size:" + sampleArray.length)
+    # for sample <- sampleArray
+    #     userKey = userFeaturePrefix + sample.getAs[String]("userId")
+    #     valueMap = mutable.Map[String, String]()
+    #     valueMap("userRatedMovie1") = sample.getAs[String]("userRatedMovie1")
+    #     valueMap("userRatedMovie2") = sample.getAs[String]("userRatedMovie2")
+    #     valueMap("userRatedMovie3") = sample.getAs[String]("userRatedMovie3")
+    #     valueMap("userRatedMovie4") = sample.getAs[String]("userRatedMovie4")
+    #     valueMap("userRatedMovie5") = sample.getAs[String]("userRatedMovie5")
+    #     valueMap("userGenre1") = sample.getAs[String]("userGenre1")
+    #     valueMap("userGenre2") = sample.getAs[String]("userGenre2")
+    #     valueMap("userGenre3") = sample.getAs[String]("userGenre3")
+    #     valueMap("userGenre4") = sample.getAs[String]("userGenre4")
+    #     valueMap("userGenre5") = sample.getAs[String]("userGenre5")
+    #     valueMap("userRatingCount") = sample.getAs[Long]("userRatingCount").toString
+    #     valueMap("userAvgReleaseYear") = sample.getAs[Int]("userAvgReleaseYear").toString
+    #     valueMap("userReleaseYearStddev") = sample.getAs[String]("userReleaseYearStddev")
+    #     valueMap("userAvgRating") = sample.getAs[String]("userAvgRating")
+    #     valueMap("userRatingStddev") = sample.getAs[String]("userRatingStddev")
+    # re.hmset(userKey, JavaConversions.mapAsJavaMap(valueMap))
 
-val re = new Jedis(redisEndpoint, redisPort)
-val params = SetParams.setParams()
-//set ttl to 24hs * 30
-params.ex(60 * 60 * 24 * 30)
-val sampleArray = userLatestSamples.collect()
-println("total user size:" + sampleArray.length)
-var insertedUserNumber = 0
-val userCount = sampleArray.length
-for (sample <- sampleArray){
-    val userKey = userFeaturePrefix + sample.getAs[String]("userId")
-val valueMap = mutable.Map[String, String]()
-valueMap("userRatedMovie1") = sample.getAs[String]("userRatedMovie1")
-valueMap("userRatedMovie2") = sample.getAs[String]("userRatedMovie2")
-valueMap("userRatedMovie3") = sample.getAs[String]("userRatedMovie3")
-valueMap("userRatedMovie4") = sample.getAs[String]("userRatedMovie4")
-valueMap("userRatedMovie5") = sample.getAs[String]("userRatedMovie5")
-valueMap("userGenre1") = sample.getAs[String]("userGenre1")
-valueMap("userGenre2") = sample.getAs[String]("userGenre2")
-valueMap("userGenre3") = sample.getAs[String]("userGenre3")
-valueMap("userGenre4") = sample.getAs[String]("userGenre4")
-valueMap("userGenre5") = sample.getAs[String]("userGenre5")
-valueMap("userRatingCount") = sample.getAs[Long]("userRatingCount").toString
-valueMap("userAvgReleaseYear") = sample.getAs[Int]("userAvgReleaseYear").toString
-valueMap("userReleaseYearStddev") = sample.getAs[String]("userReleaseYearStddev")
-valueMap("userAvgRating") = sample.getAs[String]("userAvgRating")
-valueMap("userRatingStddev") = sample.getAs[String]("userRatingStddev")
-
-re.hset(userKey, JavaConversions.mapAsJavaMap(valueMap))
-insertedUserNumber += 1
-if (insertedUserNumber % 100 ==0){
-println(insertedUserNumber + "/" + userCount + "...")
-}
-}
-
-re.close()
-userLatestSamples
 
 def extractAndSaveMovieFeaturesToRedis(samples, re):
-    movieLatestSamples = samples.withColumn("movieRowNum", row_number()
-                                            .over(Window.partitionBy("movieId")
-                                                  .orderBy(col("timestamp").desc)))
-    .filter(col("movieRowNum") === 1)
-    .select("movieId","releaseYear", "movieGenre1","movieGenre2","movieGenre3","movieRatingCount",
-            "movieAvgRating", "movieRatingStddev")
-    .na.fill("")
-
-movieLatestSamples.printSchema()
-movieLatestSamples.show(100, truncate = false)
-
-val movieFeaturePrefix = "mf:"
-
-val redisClient = new Jedis(redisEndpoint, redisPort)
-val params = SetParams.setParams()
-//set ttl to 24hs * 30
-params.ex(60 * 60 * 24 * 30)
-val sampleArray = movieLatestSamples.collect()
-println("total movie size:" + sampleArray.length)
-var insertedMovieNumber = 0
-val movieCount = sampleArray.length
-for (sample <- sampleArray){
-    val movieKey = movieFeaturePrefix + sample.getAs[String]("movieId")
-val valueMap = mutable.Map[String, String]()
-valueMap("movieGenre1") = sample.getAs[String]("movieGenre1")
-valueMap("movieGenre2") = sample.getAs[String]("movieGenre2")
-valueMap("movieGenre3") = sample.getAs[String]("movieGenre3")
-valueMap("movieRatingCount") = sample.getAs[Long]("movieRatingCount").toString
-valueMap("releaseYear") = sample.getAs[Int]("releaseYear").toString
-valueMap("movieAvgRating") = sample.getAs[String]("movieAvgRating")
-valueMap("movieRatingStddev") = sample.getAs[String]("movieRatingStddev")
-
-redisClient.hset(movieKey, JavaConversions.mapAsJavaMap(valueMap))
-insertedMovieNumber += 1
-if (insertedMovieNumber % 100 ==0){
-println(insertedMovieNumber + "/" + movieCount + "...")
-}
-}
-
-redisClient.close()
-movieLatestSamples
+    movieLatestSamples = samples.withColumn("movieRowNum", F.count(F.lit(1)).over(
+        sql.Window.partitionBy("movieId").orderBy(F.desc(F.col("timestamp"))))) \
+        .filter(col("movieRowNum") == 1) \
+        .select("movieId", "releaseYear",
+                "movieGenre1", "movieGenre2", "movieGenre3",
+                "movieRatingCount", "movieAvgRating", "movieRatingStddev") \
+        .na.fill("")
+    movieFeaturePrefix = "mf:"
+    sampleArray = movieLatestSamples.collect()
+    print("total movie size:" + sampleArray.length)
+    # for sample <- sampleArray
+    #     movieKey = movieFeaturePrefix + sample.getAs[String]("movieId")
+    #     valueMap = mutable.Map[String, String]()
+    #     valueMap("movieGenre1") = sample.getAs[String]("movieGenre1")
+    #     valueMap("movieGenre2") = sample.getAs[String]("movieGenre2")
+    #     valueMap("movieGenre3") = sample.getAs[String]("movieGenre3")
+    #     valueMap("movieRatingCount") = sample.getAs[Long]("movieRatingCount").toString
+    #     valueMap("releaseYear") = sample.getAs[Int]("releaseYear").toString
+    #     valueMap("movieAvgRating") = sample.getAs[String]("movieAvgRating")
+    #     valueMap("movieRatingStddev") = sample.getAs[String]("movieRatingStddev")
+    # re.hmset(movieKey, JavaConversions.mapAsJavaMap(valueMap))
 
 
 if __name__ == '__main__':
@@ -241,7 +205,7 @@ if __name__ == '__main__':
     r = redis.Redis(connection_pool=pool)
     conf = SparkConf().setAppName('featureEngineering').setMaster('local')
     spark = SparkSession.builder.config(conf=conf).config(
-        'spark.sql.debug.maxToStringFields', 100).config('spark.debug.maxToStringFields', 100).getOrCreate()
+        'spark.sql.debug.maxToStringFields', 5000).config('spark.debug.maxToStringFields', 5000).getOrCreate()
     file_path = 'E:/GraduateDesign/Graduated'
     movieResourcesPath = file_path + "/Library/sampleData/movies.csv"
     ratingsResourcesPath = file_path + "/Library/sampleData/ratings.csv"
