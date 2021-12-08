@@ -1,4 +1,5 @@
 from pyspark import SparkContext, SparkConf
+import redis
 from pyspark.sql import SparkSession
 import pyspark.sql as sql
 from pyspark.sql.functions import *
@@ -7,6 +8,8 @@ from collections import defaultdict
 from pyspark.sql import functions as F
 
 NUMBER_PRECISION = 2
+host = 'localhost'
+port = 6379
 
 
 def addSampleLabel(ratingSamples):
@@ -107,24 +110,24 @@ def addUserFeatures(samplesWithMovieFeatures):
         .drop("genres", "userGenres", "userPositiveHistory") \
         .filter(F.col("userRatingCount") > 1)
     samplesWithUserFeatures.printSchema()
-    samplesWithUserFeatures.show(10)
-    samplesWithUserFeatures.filter(samplesWithMovieFeatures['userId'] == 1).orderBy(F.col('timestamp').asc()).show(
-        truncate=False)
+    # samplesWithUserFeatures.show(10)
+    # samplesWithUserFeatures.filter(samplesWithMovieFeatures['userId'] == 1).orderBy(F.col('timestamp').asc()).show(
+    #     truncate=False)
     return samplesWithUserFeatures
 
 
-def splitAndSaveTrainingTestSamples(samplesWithUserFeatures, file_path):
+def splitAndSaveTrainingTestSamples(samplesWithUserFeatures, file_path, re):
     smallSamples = samplesWithUserFeatures.sample(0.1)
     training, test = smallSamples.randomSplit((0.8, 0.2))
-    trainingSavePath = file_path + '/trainingSamples'
-    testSavePath = file_path + '/testSamples'
-    training.repartition(1).write.option("header", "true").mode('overwrite') \
-        .csv(trainingSavePath)
-    test.repartition(1).write.option("header", "true").mode('overwrite') \
-        .csv(testSavePath)
+    # trainingSavePath = file_path + '/trainingSamples.csv'
+    # testSavePath = file_path + '/testSamples.csv'
+    re.hmset('', {'name': 'Jerry', 'species': 'mouse'})
+    re.hmset('info_2', {'name': 'Jerry', 'species': 'mouse'})
+    # training.repartition(1).write.csv(trainingSavePath)
+    # test.repartition(1).write.csv(testSavePath)
 
 
-def splitAndSaveTrainingTestSamplesByTimeStamp(samplesWithUserFeatures, file_path):
+def splitAndSaveTrainingTestSamplesByTimeStamp(samplesWithUserFeatures, file_path, r):
     smallSamples = samplesWithUserFeatures.sample(0.1).withColumn("timestampLong", F.col("timestamp").cast(LongType()))
     quantile = smallSamples.stat.approxQuantile("timestampLong", [0.8], 0.05)
     splitTimestamp = quantile[0]
@@ -132,18 +135,19 @@ def splitAndSaveTrainingTestSamplesByTimeStamp(samplesWithUserFeatures, file_pat
     test = smallSamples.where(F.col("timestampLong") > splitTimestamp).drop("timestampLong")
     trainingSavePath = file_path + '/trainingSamples'
     testSavePath = file_path + '/testSamples'
-    training.repartition(1).write.option("header", "true").mode('overwrite') \
-        .csv(trainingSavePath)
-    test.repartition(1).write.option("header", "true").mode('overwrite') \
-        .csv(testSavePath)
+    training.repartition(1).write.option("header", "true").mode('overwrite').csv(trainingSavePath)
+    test.repartition(1).write.option("header", "true").mode('overwrite').csv(testSavePath)
 
 
 if __name__ == '__main__':
+    pool = redis.ConnectionPool(host=host, port=port)
+    r = redis.Redis(connection_pool=pool)
     conf = SparkConf().setAppName('featureEngineering').setMaster('local')
-    spark = SparkSession.builder.config(conf=conf).getOrCreate()
-    file_path = 'file:///home/hadoop/SparrowRecSys/src/main/resources'
-    movieResourcesPath = file_path + "/webroot/sampledata/movies.csv"
-    ratingsResourcesPath = file_path + "/webroot/sampledata/ratings.csv"
+    spark = SparkSession.builder.config(conf=conf).config(
+        'spark.sql.debug.maxToStringFields', 100).config('spark.debug.maxToStringFields', 100).getOrCreate()
+    file_path = 'E:/GraduateDesign/Graduated'
+    movieResourcesPath = file_path + "/Library/sampleData/movies.csv"
+    ratingsResourcesPath = file_path + "/Library/sampleData/ratings.csv"
     movieSamples = spark.read.format('csv').option('header', 'true').load(movieResourcesPath)
     ratingSamples = spark.read.format('csv').option('header', 'true').load(ratingsResourcesPath)
     ratingSamplesWithLabel = addSampleLabel(ratingSamples)
@@ -151,5 +155,5 @@ if __name__ == '__main__':
     samplesWithMovieFeatures = addMovieFeatures(movieSamples, ratingSamplesWithLabel)
     samplesWithUserFeatures = addUserFeatures(samplesWithMovieFeatures)
     # save samples as csv format
-    splitAndSaveTrainingTestSamples(samplesWithUserFeatures, file_path + "/webroot/sampledata")
-    # splitAndSaveTrainingTestSamplesByTimeStamp(samplesWithUserFeatures, file_path + "/webroot/sampledata")
+    splitAndSaveTrainingTestSamples(samplesWithUserFeatures, file_path + "/Library/sampleData", r)
+    # splitAndSaveTrainingTestSamplesByTimeStamp(samplesWithUserFeatures, file_path + "/Library/sampleData", r)

@@ -22,7 +22,7 @@ public class SimilarMovieProcess {
         if (null == movie){
             return new ArrayList<>();
         }
-        List<Movie> candidates = candidateGenerator(movie);
+        List<Movie> candidates = retrievalCandidatesByEmbedding(movie, 250);
         List<Movie> rankedList = ranker(movie, candidates, model);
 
         if (rankedList.size() > size){
@@ -33,6 +33,7 @@ public class SimilarMovieProcess {
 
     /**
      * generate candidates for similar movies recommendation
+     * single policy recall
      * @param movie input movie object
      * @return  movie candidates
      */

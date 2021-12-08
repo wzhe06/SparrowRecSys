@@ -2,12 +2,12 @@ import tensorflow as tf
 
 # Training samples path, change to your local path
 training_samples_file_path = tf.keras.utils.get_file("trainingSamples.csv",
-                                                     "file:///Users/zhewang/Workspace/SparrowRecSys/src/main"
+                                                     "file:///E:/GraduateDesign/Graduated/SparrowRecSys/src/main"
                                                      "/resources/webroot/sampledata/trainingSamples.csv")
 # Test samples path, change to your local path
 test_samples_file_path = tf.keras.utils.get_file("testSamples.csv",
-                                                 "file:///Users/zhewang/Workspace/SparrowRecSys/src/main"
-                                                 "/resources/webroot/sampledata/testSamples.csv")
+                                                 "file:///E:/GraduateDesign/Graduated/SparrowRecSys/src/main"
+                                                     "/resources/webroot/sampledata/trainingSamples.csv")
 
 
 # load sample as tf dataset
@@ -96,7 +96,7 @@ for prediction, goodRating in zip(predictions[:12], list(test_dataset)[0][1][:12
 
 tf.keras.models.save_model(
     model,
-    "file:///Users/zhewang/Workspace/SparrowRecSys/src/main/resources/webroot/modeldata/neuralcf/002",
+    "file:///E:/GraduateDesign/Graduated/SparrowRecSys/src/main/resources/webroot/modeldata/neuralcf/002",
     overwrite=True,
     include_optimizer=True,
     save_format=None,

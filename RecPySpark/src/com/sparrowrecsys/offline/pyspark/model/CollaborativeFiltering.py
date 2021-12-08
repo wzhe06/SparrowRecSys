@@ -9,9 +9,8 @@ from pyspark.sql import functions as F
 if __name__ == '__main__':
     conf = SparkConf().setAppName('collaborativeFiltering').setMaster('local')
     spark = SparkSession.builder.config(conf=conf).getOrCreate()
-    #/Users/zhewang/Workspace/SparrowRecSys/src/main/resources/webroot/modeldata
-    file_path = 'file:///Users/zhewang/Workspace/SparrowRecSys/src/main/resources'
-    ratingResourcesPath = file_path + '/webroot/sampledata/ratings.csv'
+    file_path = 'E:/GraduateDesign/Graduated'
+    ratingResourcesPath = file_path + '/Library/sampleData/ratings.csv'
     ratingSamples = spark.read.format('csv').option('header', 'true').load(ratingResourcesPath) \
         .withColumn("userIdInt", F.col("userId").cast(IntegerType())) \
         .withColumn("movieIdInt", F.col("movieId").cast(IntegerType())) \

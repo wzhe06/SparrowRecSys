@@ -156,8 +156,8 @@ def randomWalk(transitionMatrix, itemDistribution, sampleCount, sampleLength):
 
 def graphEmb(samples, spark, embLength, embOutputFilename, saveToRedis, redisKeyPrefix):
     transitionMatrix, itemDistribution = generateTransitionMatrix(samples)
-    sampleCount = 20000
-    sampleLength = 10
+    sampleCount = 600000
+    sampleLength = 15
     newSamples = randomWalk(transitionMatrix, itemDistribution, sampleCount, sampleLength)
     rddSamples = spark.sparkContext.parallelize(newSamples)
     trainItem2vec(spark, rddSamples, embLength, embOutputFilename, saveToRedis, redisKeyPrefix)
@@ -187,15 +187,15 @@ if __name__ == '__main__':
     conf = SparkConf().setAppName('ctrModel').setMaster('local')
     spark = SparkSession.builder.config(conf=conf).getOrCreate()
     # Change to your own filepath
-    file_path = 'file:///home/hadoop/SparrowRecSys/src/main/resources'
-    rawSampleDataPath = file_path + "/webroot/sampledata/ratings.csv"
+    file_path = 'E:/GraduateDesign/Graduated'
+    rawSampleDataPath = file_path + "/Library/sampleData/ratings.csv"
     embLength = 10
     samples = processItemSequence(spark, rawSampleDataPath)
     model = trainItem2vec(spark, samples, embLength,
-                          embOutputPath=file_path[7:] + "/webroot/modeldata2/item2vecEmb.csv", saveToRedis=False,
+                          embOutputPath=file_path + "/Library/modelData/item2vecEmb.csv", saveToRedis=False,
                           redisKeyPrefix="i2vEmb")
-    graphEmb(samples, spark, embLength, embOutputFilename=file_path[7:] + "/webroot/modeldata2/itemGraphEmb.csv",
+    graphEmb(samples, spark, embLength, embOutputFilename=file_path + "/Library/modelData/itemGraphEmb.csv",
              saveToRedis=True, redisKeyPrefix="graphEmb")
     generateUserEmb(spark, rawSampleDataPath, model, embLength,
-                    embOutputPath=file_path[7:] + "/webroot/modeldata2/userEmb.csv", saveToRedis=False,
+                    embOutputPath=file_path + "/Library/modelData/userEmb.csv", saveToRedis=False,
                     redisKeyPrefix="uEmb")
