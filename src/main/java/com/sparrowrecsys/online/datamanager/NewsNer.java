@@ -3,9 +3,9 @@ package com.sparrowrecsys.online.datamanager;
 
 
 public class NewsNer {
-    String text;
-    int count;
-    String label;
+    private String text;
+    private int count;
+    private String label;
 
     public NewsNer(String text, String label, int count) {
         this.text = text;

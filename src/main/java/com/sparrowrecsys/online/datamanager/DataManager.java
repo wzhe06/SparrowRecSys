@@ -3,10 +3,13 @@ package com.sparrowrecsys.online.datamanager;
 import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
+
+import org.apache.hadoop.util.hash.Hash;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+
 
 /**
  * DataManager is an utility class, takes charge of all data loading logic.
@@ -18,7 +21,7 @@ public class DataManager {
     HashMap<Integer, News> newsMap;
     HashMap<Integer, User> userMap;
     //genre reverse index for quick querying all movies in a genre
-    HashMap<NewsNer, List<News>> nerReverseIndexMap;
+    HashMap<String, List<News>> nerReverseIndexMap;
 
     private DataManager(){
         this.newsMap = new HashMap<>();
@@ -54,7 +57,6 @@ public class DataManager {
 
     private void loadNewsData(String newsDataPath) throws Exception {
         System.out.println("Loading news data from" + newsDataPath + " ...");
-        boolean skipFirstLine = true;
         //JSON parser object to parse read file
         JSONParser jsonParser = new JSONParser();
         ArrayList<JSONObject> json=new ArrayList<JSONObject>();
@@ -76,14 +78,35 @@ public class DataManager {
                 try {
                     News news = parseNewsObject(obj);
                     newsMap.put(news.getNewsId(), news);
+                    putNews2Redis(news);
                 } catch (java.text.ParseException e) {
                     e.printStackTrace();
                 }
             }
+//            List<Integer> testList = getNewsIdByNer("Nets", -1);
+//            for (int i : testList) {
+//                System.out.printf("%d ", i);
+//            }
+//            System.out.printf("\n");
+
+//            System.out.println(nerReverseIndexMap.keySet().size());
+            int maxSize = 0;
+            for (String nerText : nerReverseIndexMap.keySet()) {
+                maxSize = Math.max(maxSize, nerReverseIndexMap.get(nerText).size());
+            }
+//            System.out.println(maxSize);
         } catch (ParseException | IOException e) {
             e.printStackTrace();
         }
     }
+
+//    private void indexNewsMap2Redis(HashMap<Integer, News> newsMap) {
+//        for (int newsId : newsMap.keySet()) {
+//            News news = newsMap.get(newsId);
+//            Long time = news.releaseDate.getTime();
+//            for (NewsNer)
+//        }
+//    }
 
     private News parseNewsObject(JSONObject employee) throws java.text.ParseException {
         News news = new News();
@@ -155,10 +178,37 @@ public class DataManager {
     }
 
     private void addNews2NerIndex(News news, NewsNer ner) {
-        if (!this.nerReverseIndexMap.containsKey(ner)){
-            this.nerReverseIndexMap.put(ner, new ArrayList<>());
+        if (!this.nerReverseIndexMap.containsKey(ner.getText())){
+            this.nerReverseIndexMap.put(ner.getText(), new ArrayList<>());
         }
-        this.nerReverseIndexMap.get(ner).add(news);
+        this.nerReverseIndexMap.get(ner.getText()).add(news);
+    }
+
+    private void putNews2Redis(News news) {
+        Long time = news.getReleaseDate().getTime();
+        for (NewsNer ner : news.ners) {
+            String key = "NER:" + ner.getText();
+            String value = String.valueOf(ner.getCount()) + ":" + String.valueOf(news.getNewsId());
+            RedisClient.getInstance().zadd(key, (double) time, value);
+        }
+    }
+
+    public List<Integer> getNewsIdByNer(String nerText, int expireDay) {
+        String key = "NER:" + nerText;
+        long DAY_IN_MS = 1000 * 60 * 60 * 24;
+        Set<String> set;
+        if (expireDay > 0) {
+            set = RedisClient.getInstance().zrevrange(key, System.currentTimeMillis() - (expireDay * DAY_IN_MS), -1);
+        } else {
+            set = RedisClient.getInstance().zrevrange(key, 0, -1);
+        }
+
+        List<Integer> newsIdList = new ArrayList<>();
+        for (String countNewsId : set) {
+            int newsId = Integer.parseInt(countNewsId.split(":")[1]);
+            newsIdList.add(newsId);
+        }
+        return newsIdList;
     }
 
     //get movies by genre, and order the movies by sortBy method
