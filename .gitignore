@@ -29,3 +29,5 @@ target/
 SparrowRecSys.iml
 TFRecModel.iml
 RecPySpark.iml
+
+venv/
