@@ -63,7 +63,7 @@ def rating_features(rating_samples):
 if __name__ == '__main__':
     conf = SparkConf().setAppName('featureEngineering').setMaster('local')
     spark = SparkSession.builder.config(conf=conf).getOrCreate()
-    file_path = 'E:/GraduateDesign/Graduated'
+    file_path = '/home/eleven/Documents'
     movieResourcesPath = file_path + "/Library/sampleData/movies.csv"
     movieSamples = spark.read.format('csv').option('header', 'true').load(movieResourcesPath)
     print("Raw Movie Samples:")

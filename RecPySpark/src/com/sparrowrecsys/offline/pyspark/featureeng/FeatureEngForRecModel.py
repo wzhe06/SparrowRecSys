@@ -219,8 +219,8 @@ if __name__ == '__main__':
     samplesWithMovieFeatures = addMovieFeatures(movieSamples, ratingSamplesWithLabel)
     samplesWithUserFeatures = addUserFeatures(samplesWithMovieFeatures)
     # save samples as csv format
-    # splitAndSaveTrainingTestSamples(samplesWithUserFeatures, file_path + "/Library/sampleData")
-    splitAndSaveTrainingTestSamplesByTimeStamp(samplesWithUserFeatures, file_path + "/Library/sampleData")
+    splitAndSaveTrainingTestSamples(samplesWithUserFeatures, file_path + "/Library/sampleData")
+    # splitAndSaveTrainingTestSamplesByTimeStamp(samplesWithUserFeatures, file_path + "/Library/sampleData")
 
     # extractAndSaveUserFeaturesToRedis(samplesWithUserFeatures, r)
     # extractAndSaveMovieFeaturesToRedis(samplesWithUserFeatures, r)

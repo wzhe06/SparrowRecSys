@@ -187,7 +187,7 @@ if __name__ == '__main__':
     conf = SparkConf().setAppName('ctrModel').setMaster('local')
     spark = SparkSession.builder.config(conf=conf).getOrCreate()
     # Change to your own filepath
-    file_path = 'E:/GraduateDesign/Graduated'
+    file_path = '/home/eleven/Documents'
     rawSampleDataPath = file_path + "/Library/sampleData/ratings.csv"
     embLength = 10
     samples = processItemSequence(spark, rawSampleDataPath)

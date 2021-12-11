@@ -9,7 +9,7 @@ from pyspark.sql import functions as F
 if __name__ == '__main__':
     conf = SparkConf().setAppName('collaborativeFiltering').setMaster('local')
     spark = SparkSession.builder.config(conf=conf).getOrCreate()
-    file_path = 'E:/GraduateDesign/Graduated'
+    file_path = '/home/eleven/Documents'
     ratingResourcesPath = file_path + '/Library/sampleData/ratings.csv'
     ratingSamples = spark.read.format('csv').option('header', 'true').load(ratingResourcesPath) \
         .withColumn("userIdInt", F.col("userId").cast(IntegerType())) \
