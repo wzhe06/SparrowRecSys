@@ -28,7 +28,10 @@ def extractReleaseYearUdf(title):
         return 1990
     else:
         yearStr = title.strip()[-5:-1]
-    return int(yearStr)
+    if yearStr.isdigit():
+        return int(yearStr)
+    else:
+        return 1990
 
 
 def addMovieFeatures(movieSamples, ratingSamplesWithLabel):
@@ -216,8 +219,8 @@ if __name__ == '__main__':
     samplesWithMovieFeatures = addMovieFeatures(movieSamples, ratingSamplesWithLabel)
     samplesWithUserFeatures = addUserFeatures(samplesWithMovieFeatures)
     # save samples as csv format
-    splitAndSaveTrainingTestSamples(samplesWithUserFeatures, file_path + "/Library/sampleData")
-    # splitAndSaveTrainingTestSamplesByTimeStamp(samplesWithUserFeatures, file_path + "/webroot/sampledata")
+    # splitAndSaveTrainingTestSamples(samplesWithUserFeatures, file_path + "/Library/sampleData")
+    splitAndSaveTrainingTestSamplesByTimeStamp(samplesWithUserFeatures, file_path + "/Library/sampleData")
 
     # extractAndSaveUserFeaturesToRedis(samplesWithUserFeatures, r)
     # extractAndSaveMovieFeaturesToRedis(samplesWithUserFeatures, r)
