@@ -116,29 +116,29 @@ def addUserFeatures(samplesWithMovieFeatures):
     return samplesWithUserFeatures
 
 
-# def splitAndSaveTrainingTestSamples(samplesWithUserFeatures, file_path):
-#     smallSamples = samplesWithUserFeatures.sample(0.1)
-#     training, test = smallSamples.randomSplit((0.8, 0.2))
-#     trainingSavePath = file_path + '/trainingSamples'
-#     testSavePath = file_path + '/testSamples'
-#     training.repartition(1).write.option("header", "true").mode('overwrite') \
-#         .csv(trainingSavePath)
-#     test.repartition(1).write.option("header", "true").mode('overwrite') \
-#         .csv(testSavePath)
-#
-#
-# def splitAndSaveTrainingTestSamplesByTimeStamp(samplesWithUserFeatures, file_path):
-#     smallSamples = samplesWithUserFeatures.sample(0.1).withColumn("timestampLong", F.col("timestamp").cast(LongType()))
-#     quantile = smallSamples.stat.approxQuantile("timestampLong", [0.8], 0.05)
-#     splitTimestamp = quantile[0]
-#     training = smallSamples.where(F.col("timestampLong") <= splitTimestamp).drop("timestampLong")
-#     test = smallSamples.where(F.col("timestampLong") > splitTimestamp).drop("timestampLong")
-#     trainingSavePath = file_path + '/trainingSamples'
-#     testSavePath = file_path + '/testSamples'
-#     training.repartition(1).write.option("header", "true").mode('overwrite') \
-#         .csv(trainingSavePath)
-#     test.repartition(1).write.option("header", "true").mode('overwrite') \
-#         .csv(testSavePath)
+def splitAndSaveTrainingTestSamples(samplesWithUserFeatures, file_path):
+    smallSamples = samplesWithUserFeatures.sample(0.1)
+    training, test = smallSamples.randomSplit((0.8, 0.2))
+    trainingSavePath = file_path + '/trainingSamples'
+    testSavePath = file_path + '/testSamples'
+    training.repartition(1).write.option("header", "true").mode('overwrite') \
+        .csv(trainingSavePath)
+    test.repartition(1).write.option("header", "true").mode('overwrite') \
+        .csv(testSavePath)
+
+
+def splitAndSaveTrainingTestSamplesByTimeStamp(samplesWithUserFeatures, file_path):
+    smallSamples = samplesWithUserFeatures.sample(0.1).withColumn("timestampLong", F.col("timestamp").cast(LongType()))
+    quantile = smallSamples.stat.approxQuantile("timestampLong", [0.8], 0.05)
+    splitTimestamp = quantile[0]
+    training = smallSamples.where(F.col("timestampLong") <= splitTimestamp).drop("timestampLong")
+    test = smallSamples.where(F.col("timestampLong") > splitTimestamp).drop("timestampLong")
+    trainingSavePath = file_path + '/trainingSamples'
+    testSavePath = file_path + '/testSamples'
+    training.repartition(1).write.option("header", "true").mode('overwrite') \
+        .csv(trainingSavePath)
+    test.repartition(1).write.option("header", "true").mode('overwrite') \
+        .csv(testSavePath)
 
 def extractAndSaveUserFeaturesToRedis(samples, re):
     userLatestSamples = samples.withColumn("userRowNum",
@@ -206,7 +206,7 @@ if __name__ == '__main__':
     conf = SparkConf().setAppName('featureEngineering').setMaster('local')
     spark = SparkSession.builder.config(conf=conf).config(
         'spark.sql.debug.maxToStringFields', 5000).config('spark.debug.maxToStringFields', 5000).getOrCreate()
-    file_path = 'E:/GraduateDesign/Graduated'
+    file_path = '/home/eleven/Documents'
     movieResourcesPath = file_path + "/Library/sampleData/movies.csv"
     ratingsResourcesPath = file_path + "/Library/sampleData/ratings.csv"
     movieSamples = spark.read.format('csv').option('header', 'true').load(movieResourcesPath)
@@ -216,8 +216,8 @@ if __name__ == '__main__':
     samplesWithMovieFeatures = addMovieFeatures(movieSamples, ratingSamplesWithLabel)
     samplesWithUserFeatures = addUserFeatures(samplesWithMovieFeatures)
     # save samples as csv format
-    # splitAndSaveTrainingTestSamples(samplesWithUserFeatures, file_path + "/webroot/sampledata")
+    splitAndSaveTrainingTestSamples(samplesWithUserFeatures, file_path + "/Library/sampleData")
     # splitAndSaveTrainingTestSamplesByTimeStamp(samplesWithUserFeatures, file_path + "/webroot/sampledata")
 
-    extractAndSaveUserFeaturesToRedis(samplesWithUserFeatures, r)
-    extractAndSaveMovieFeaturesToRedis(samplesWithUserFeatures, r)
+    # extractAndSaveUserFeaturesToRedis(samplesWithUserFeatures, r)
+    # extractAndSaveMovieFeaturesToRedis(samplesWithUserFeatures, r)
