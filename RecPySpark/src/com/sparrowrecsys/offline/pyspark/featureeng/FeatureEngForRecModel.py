@@ -13,11 +13,6 @@ port = 6379
 
 
 def addSampleLabel(ratingSamples):
-    ratingSamples.show(5, truncate=False)
-    ratingSamples.printSchema()
-    sampleCount = ratingSamples.count()
-    ratingSamples.groupBy('rating').count().orderBy('rating').withColumn('percentage',
-                                                                         F.col('count') / sampleCount).show()
     ratingSamples = ratingSamples.withColumn('label', when(F.col('rating') >= 3.5, 1).otherwise(0))
     return ratingSamples
 
@@ -56,8 +51,6 @@ def addMovieFeatures(movieSamples, ratingSamplesWithLabel):
         .withColumn('movieRatingStddev', format_number(F.col('movieRatingStddev'), NUMBER_PRECISION))
     # join movie rating features
     samplesWithMovies4 = samplesWithMovies3.join(movieRatingFeatures, on=['movieId'], how='left')
-    samplesWithMovies4.printSchema()
-    samplesWithMovies4.show(5, truncate=False)
     return samplesWithMovies4
 
 
@@ -112,10 +105,6 @@ def addUserFeatures(samplesWithMovieFeatures):
         .withColumn("userGenre5", F.col("userGenres")[4]) \
         .drop("genres", "userGenres", "userPositiveHistory") \
         .filter(F.col("userRatingCount") > 1)
-    samplesWithUserFeatures.printSchema()
-    # samplesWithUserFeatures.show(10)
-    # samplesWithUserFeatures.filter(samplesWithMovieFeatures['userId'] == 1).orderBy(F.col('timestamp').asc()).show(
-    #     truncate=False)
     return samplesWithUserFeatures
 
 
@@ -157,7 +146,6 @@ def extractAndSaveUserFeaturesToRedis(samples, re):
     userFeaturePrefix = "uf:"
 
     sampleArray = userLatestSamples.collect()
-    print("total movie size:" + sampleArray.length)
     # for sample <- sampleArray
     #     userKey = userFeaturePrefix + sample.getAs[String]("userId")
     #     valueMap = mutable.Map[String, String]()
@@ -215,7 +203,6 @@ if __name__ == '__main__':
     movieSamples = spark.read.format('csv').option('header', 'true').load(movieResourcesPath)
     ratingSamples = spark.read.format('csv').option('header', 'true').load(ratingsResourcesPath)
     ratingSamplesWithLabel = addSampleLabel(ratingSamples)
-    ratingSamplesWithLabel.show(10, truncate=False)
     samplesWithMovieFeatures = addMovieFeatures(movieSamples, ratingSamplesWithLabel)
     samplesWithUserFeatures = addUserFeatures(samplesWithMovieFeatures)
     # save samples as csv format
