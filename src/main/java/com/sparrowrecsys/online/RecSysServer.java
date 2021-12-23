@@ -46,37 +46,6 @@ public class RecSysServer {
         URI webRootUri = URI.create(webRootLocation.toURI().toASCIIString().replaceFirst("/index.html$","/"));
         System.out.printf("Web Root URI: %s%n", webRootUri.getPath());
 
-<<<<<<< HEAD
-        //load all the data to DataManager
-        DataManager.getInstance().loadData(webRootUri.getPath() + "sampledata/movies.csv",
-                webRootUri.getPath() + "sampledata/links.csv",webRootUri.getPath() + "sampledata/ratings.csv",
-                webRootUri.getPath() + "modeldata/item2vecEmb.csv",
-                webRootUri.getPath() + "modeldata/userEmb.csv",
-                "i2vEmb", "uEmb");
-
-        //create server context
-        ServletContextHandler context = new ServletContextHandler();
-        context.setContextPath("/");
-        context.setBaseResource(Resource.newResource(webRootUri));
-        context.setWelcomeFiles(new String[] { "index.html" });
-        context.getMimeTypes().addMimeMapping("txt","text/plain;charset=utf-8");
-
-        //bind services with different servlets
-        context.addServlet(DefaultServlet.class,"/");
-        context.addServlet(new ServletHolder(new MovieService()), "/getmovie");
-        context.addServlet(new ServletHolder(new UserService()), "/getuser");
-        context.addServlet(new ServletHolder(new SimilarMovieService()), "/getsimilarmovie");
-        context.addServlet(new ServletHolder(new RecommendationService()), "/getrecommendation");
-        context.addServlet(new ServletHolder(new RecForYouService()), "/getrecforyou");
-
-        //set url handler
-        server.setHandler(context);
-        System.out.println("RecSys Server has started.");
-
-        //start Server
-        server.start();
-        server.join();
-=======
         DataManager.getInstance().loadData(webRootUri.getPath() + "modeldata/dq4hzkf7em22jdood6ggaltakq.json");
 
         //load all the data to DataManager
@@ -108,6 +77,5 @@ public class RecSysServer {
 //        //start Server
 //        server.start();
 //        server.join();
->>>>>>> Ethan
     }
 }
