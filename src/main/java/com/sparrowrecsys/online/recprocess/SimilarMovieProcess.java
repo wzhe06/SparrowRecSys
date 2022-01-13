@@ -3,12 +3,15 @@ package com.sparrowrecsys.online.recprocess;
 import com.sparrowrecsys.online.datamanager.DataManager;
 import com.sparrowrecsys.online.datamanager.Movie;
 import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * Recommendation process of similar movies
  */
 
 public class SimilarMovieProcess {
+    private static ThreadPoolExecutor pool = new ThreadPoolExecutor(3, 3, 1000, TimeUnit.MILLISECONDS, new SynchronousQueue<>(), Executors.defaultThreadFactory(),new ThreadPoolExecutor.AbortPolicy());
+
 
     /**
      * get recommendation movie list
@@ -76,6 +79,54 @@ public class SimilarMovieProcess {
         List<Movie> latestCandidates = DataManager.getInstance().getMovies(100, "releaseYear");
         for (Movie candidate : latestCandidates){
             candidateMap.put(candidate.getMovieId(), candidate);
+        }
+
+        candidateMap.remove(movie.getMovieId());
+        return new ArrayList<>(candidateMap.values());
+    }
+
+    /**
+     * multiple-retrieval candidate generation method with multiple threads
+     * @param movie input movie object
+     * @return movie candidates
+     */
+    public static List<Movie> concurrentMultipleRetrievalCandidates(Movie movie){
+        if (null == movie){
+            return null;
+        }
+
+        CountDownLatch latch = new CountDownLatch(3);
+        HashSet<String> genres = new HashSet<>(movie.getGenres());
+
+        ConcurrentHashMap<Integer, Movie> candidateMap = new ConcurrentHashMap<>();
+        pool.execute(() -> {
+            for (String genre : genres){
+                List<Movie> oneCandidates = DataManager.getInstance().getMoviesByGenre(genre, 20, "rating");
+                for (Movie candidate : oneCandidates){
+                    candidateMap.put(candidate.getMovieId(), candidate);
+                }
+            }
+            latch.countDown();
+        });
+        pool.execute(()->{
+            List<Movie> highRatingCandidates = DataManager.getInstance().getMovies(100, "rating");
+            for (Movie candidate : highRatingCandidates){
+                candidateMap.put(candidate.getMovieId(), candidate);
+            }
+            latch.countDown();
+        });
+        pool.execute(()->{
+            List<Movie> latestCandidates = DataManager.getInstance().getMovies(100, "releaseYear");
+            for (Movie candidate : latestCandidates){
+                candidateMap.put(candidate.getMovieId(), candidate);
+            }
+            latch.countDown();
+        });
+
+        try {
+            latch.await();
+        } catch (InterruptedException exception){
+            exception.printStackTrace();
         }
 
         candidateMap.remove(movie.getMovieId());
