@@ -3,6 +3,7 @@ package com.sparrowrecsys.online.recprocess;
 import com.sparrowrecsys.online.datamanager.DataManager;
 import com.sparrowrecsys.online.datamanager.User;
 import com.sparrowrecsys.online.datamanager.Movie;
+import com.sparrowrecsys.online.datamanager.Rating;
 import com.sparrowrecsys.online.datamanager.RedisClient;
 import com.sparrowrecsys.online.util.Config;
 import com.sparrowrecsys.online.util.Utility;
@@ -33,7 +34,11 @@ public class RecForYouProcess {
         }
         final int CANDIDATE_SIZE = 800;
         List<Movie> candidates = DataManager.getInstance().getMovies(CANDIDATE_SIZE, "rating");
-
+        List<Rating> userRatings = user.getRatings();
+        for (Rating rating: userRatings){
+            Movie watchedMovie = DataManager.getInstance().getMovieById(rating.getMovieId());
+            candidates.remove(watchedMovie);
+        }
         //load user emb from redis if data source is redis
         if (Config.EMB_DATA_SOURCE.equals(Config.DATA_SOURCE_REDIS)){
             String userEmbKey = "uEmb:" + userId;
