@@ -1,6 +1,7 @@
 # Sparrow Recommender System
 
-Sparrow Recommender System (SparrowRecSys) 是一个电影推荐系统，名字 SparrowRecSys（麻雀推荐系统），取自“麻雀虽小，五脏俱全”之意。项目是一个基于 maven 的混合语言项目，同时包含了 TensorFlow，Spark，Jetty Server 等推荐系统的不同模块。希望你能够利用 SparrowRecSys 进行推荐系统的学习，并有机会一起完善它。
+
+SparrowRecSys 是一个电影推荐系统，名字 SparrowRecSys（麻雀推荐系统），取自“麻雀虽小，五脏俱全”之意。项目是一个基于 maven 的混合语言项目，同时包含了 TensorFlow，Spark，Jetty Server 等推荐系统的不同模块。希望你能够利用 SparrowRecSys 进行推荐系统的学习，并有机会一起完善它。
 
 ## 基于 SparrowRecSys 的实践课程
 
