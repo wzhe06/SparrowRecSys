@@ -1,6 +1,5 @@
 # Sparrow Recommender System
 
-
 SparrowRecSys 是一个电影推荐系统，名字 SparrowRecSys（麻雀推荐系统），取自“麻雀虽小，五脏俱全”之意。项目是一个基于 maven 的混合语言项目，同时包含了 TensorFlow，Spark，Jetty Server 等推荐系统的不同模块。希望你能够利用 SparrowRecSys 进行推荐系统的学习，并有机会一起完善它。
 
 ## 基于 SparrowRecSys 的实践课程
@@ -76,7 +75,7 @@ SparrowRecSys 技术架构遵循经典的工业级深度学习推荐系统架构
 3. 配置 maven project。我们在 IDEA 的项目结构树的 pom.xml 上点击右键，设置为 maven project（最新的 IDE 版本也可能不用）就可以了；
 4. 配置 SDK。Sparrow Recsys 使用了 Java8，Scala2.11 的编译环境，你可以在 File->Project Structure->Project 中配置 Java SDK，并在 Global Libraries 中配置 Scala SDK；
 5. 运行推荐服务器。我们找到类文件 class RecSysServer（com.wzhe.sparrowrecsys.online.RecSysServer），右键点击 -> run；
-6. 打开 Sparrow Recsys 首页，在浏览器中输入 http://localhost:6010/ ，当看到 Sparrow RecSys 首页的时候，就说明你整个配置和安装成功了。
+6. 打开 Sparrow Recsys 首页，在浏览器中输入 <http://localhost:6010/> ，当看到 Sparrow RecSys 首页的时候，就说明你整个配置和安装成功了。
 
 问题 2：在项目中没有找到“为你推荐页”，也没有看到一些项目介绍中提到的推荐算法，是我安装过程中出错了吗？
 
