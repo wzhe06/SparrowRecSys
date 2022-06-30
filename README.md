@@ -26,7 +26,7 @@ The project data comes from the open-source movie dataset [MovieLens](https://gr
 ## SparrowRecSys Technical Architecture
 
 The technical architecture of SparrowRecSys follows the classic industrial-level deep learning recommendation system architecture, including multiple modules such as offline data processing, model training, near-line stream processing, online model service, and front-end recommendation result display. The following is the architecture diagram of SparrowRecSys:
-![English Version of SparowRecSys](https://github.com/cuicaihao/Sparrow-Recommender-System/blob/master/docs/sparrowrecsysarch.png?raw=true)
+![English Version of SparowRecSys](https://github.com/cuicaihao/Sparrow-Recommender-System/blob/master/docs/sparrowrecsysarch_en.jpg?raw=true)
 
 ## SparrowRecSys Deep Learning Model(s)
 
