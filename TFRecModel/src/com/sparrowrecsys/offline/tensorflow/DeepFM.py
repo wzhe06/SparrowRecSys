@@ -1,16 +1,24 @@
 import tensorflow as tf
 
+import pathlib
+current_working_directory = pathlib.Path().absolute()
+train_abs_path = current_working_directory / \
+    "src/main/resources/webroot/sampledata/trainingSamples.csv"
+test_abs_path = current_working_directory / \
+    "src/main/resources/webroot/sampledata/testSamples.csv"
+print(train_abs_path)
+print(test_abs_path)
+
 # Training samples path, change to your local path
 training_samples_file_path = tf.keras.utils.get_file("trainingSamples.csv",
-                                                     "file:///Users/zhewang/Workspace/SparrowRecSys/src/main"
-                                                     "/resources/webroot/sampledata/trainingSamples.csv")
+                                                     "file://" + str(train_abs_path))
 # Test samples path, change to your local path
 test_samples_file_path = tf.keras.utils.get_file("testSamples.csv",
-                                                 "file:///Users/zhewang/Workspace/SparrowRecSys/src/main"
-                                                 "/resources/webroot/sampledata/testSamples.csv")
-
+                                                 "file://" + str(test_abs_path))
 
 # load sample as tf dataset
+
+
 def get_dataset(file_path):
     dataset = tf.data.experimental.make_csv_dataset(
         file_path,
@@ -51,14 +59,18 @@ inputs = {
 }
 
 # movie id embedding feature
-movie_col = tf.feature_column.categorical_column_with_identity(key='movieId', num_buckets=1001)
+movie_col = tf.feature_column.categorical_column_with_identity(
+    key='movieId', num_buckets=1001)
 movie_emb_col = tf.feature_column.embedding_column(movie_col, 10)
-movie_ind_col = tf.feature_column.indicator_column(movie_col) # movid id indicator columns
+movie_ind_col = tf.feature_column.indicator_column(
+    movie_col)  # movid id indicator columns
 
 # user id embedding feature
-user_col = tf.feature_column.categorical_column_with_identity(key='userId', num_buckets=30001)
+user_col = tf.feature_column.categorical_column_with_identity(
+    key='userId', num_buckets=30001)
 user_emb_col = tf.feature_column.embedding_column(user_col, 10)
-user_ind_col = tf.feature_column.indicator_column(user_col) # user id indicator columns
+user_ind_col = tf.feature_column.indicator_column(
+    user_col)  # user id indicator columns
 
 # genre features vocabulary
 genre_vocab = ['Film-Noir', 'Action', 'Adventure', 'Horror', 'Romance', 'War', 'Comedy', 'Western', 'Documentary',
@@ -68,15 +80,18 @@ genre_vocab = ['Film-Noir', 'Action', 'Adventure', 'Horror', 'Romance', 'War', '
 user_genre_col = tf.feature_column.categorical_column_with_vocabulary_list(key="userGenre1",
                                                                            vocabulary_list=genre_vocab)
 user_genre_emb_col = tf.feature_column.embedding_column(user_genre_col, 10)
-user_genre_ind_col = tf.feature_column.indicator_column(user_genre_col) # user genre indicator columns
+user_genre_ind_col = tf.feature_column.indicator_column(
+    user_genre_col)  # user genre indicator columns
 # item genre embedding feature
 item_genre_col = tf.feature_column.categorical_column_with_vocabulary_list(key="movieGenre1",
                                                                            vocabulary_list=genre_vocab)
 item_genre_emb_col = tf.feature_column.embedding_column(item_genre_col, 10)
-item_genre_ind_col = tf.feature_column.indicator_column(item_genre_col) # item genre indicator columns
+item_genre_ind_col = tf.feature_column.indicator_column(
+    item_genre_col)  # item genre indicator columns
 
 # fm first-order term columns: without embedding and concatenate to the output layer directly
-fm_first_order_columns = [movie_ind_col, user_ind_col, user_genre_ind_col, item_genre_ind_col]
+fm_first_order_columns = [movie_ind_col, user_ind_col,
+                          user_genre_ind_col, item_genre_ind_col]
 
 deep_feature_columns = [tf.feature_column.numeric_column('releaseYear'),
                         tf.feature_column.numeric_column('movieRatingCount'),
@@ -90,17 +105,24 @@ deep_feature_columns = [tf.feature_column.numeric_column('releaseYear'),
 
 item_emb_layer = tf.keras.layers.DenseFeatures([movie_emb_col])(inputs)
 user_emb_layer = tf.keras.layers.DenseFeatures([user_emb_col])(inputs)
-item_genre_emb_layer = tf.keras.layers.DenseFeatures([item_genre_emb_col])(inputs)
-user_genre_emb_layer = tf.keras.layers.DenseFeatures([user_genre_emb_col])(inputs)
+item_genre_emb_layer = tf.keras.layers.DenseFeatures(
+    [item_genre_emb_col])(inputs)
+user_genre_emb_layer = tf.keras.layers.DenseFeatures(
+    [user_genre_emb_col])(inputs)
 
 # The first-order term in the FM layer
-fm_first_order_layer = tf.keras.layers.DenseFeatures(fm_first_order_columns)(inputs)
+fm_first_order_layer = tf.keras.layers.DenseFeatures(
+    fm_first_order_columns)(inputs)
 
 # FM part, cross different categorical feature embeddings
-product_layer_item_user = tf.keras.layers.Dot(axes=1)([item_emb_layer, user_emb_layer])
-product_layer_item_genre_user_genre = tf.keras.layers.Dot(axes=1)([item_genre_emb_layer, user_genre_emb_layer])
-product_layer_item_genre_user = tf.keras.layers.Dot(axes=1)([item_genre_emb_layer, user_emb_layer])
-product_layer_user_genre_item = tf.keras.layers.Dot(axes=1)([item_emb_layer, user_genre_emb_layer])
+product_layer_item_user = tf.keras.layers.Dot(
+    axes=1)([item_emb_layer, user_emb_layer])
+product_layer_item_genre_user_genre = tf.keras.layers.Dot(
+    axes=1)([item_genre_emb_layer, user_genre_emb_layer])
+product_layer_item_genre_user = tf.keras.layers.Dot(
+    axes=1)([item_genre_emb_layer, user_emb_layer])
+product_layer_user_genre_item = tf.keras.layers.Dot(
+    axes=1)([item_emb_layer, user_genre_emb_layer])
 
 # deep part, MLP to generalize all input features
 deep = tf.keras.layers.DenseFeatures(deep_feature_columns)(inputs)
@@ -123,7 +145,8 @@ model.compile(
 model.fit(train_dataset, epochs=5)
 
 # evaluate the model
-test_loss, test_accuracy, test_roc_auc, test_pr_auc = model.evaluate(test_dataset)
+test_loss, test_accuracy, test_roc_auc, test_pr_auc = model.evaluate(
+    test_dataset)
 print('\n\nTest Loss {}, Test Accuracy {}, Test ROC AUC {}, Test PR AUC {}'.format(test_loss, test_accuracy,
                                                                                    test_roc_auc, test_pr_auc))
 
