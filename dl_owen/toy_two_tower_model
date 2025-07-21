@@ -1,0 +1,44 @@
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+# Sample data
+user_features = torch.randint(0, 1000, (10,))  # user id tokens
+item_features = torch.randint(0, 1000, (10,))  # item id tokens
+
+class TwoTowerModel(nn.Module):
+    def __init__(self, vocab_size=1000, embedding_dim=64):
+        super().__init__()
+        self.user_embedding = nn.Embedding(vocab_size, embedding_dim)
+        self.item_embedding = nn.Embedding(vocab_size, embedding_dim)
+        self.user_mlp = nn.Sequential(
+            nn.Linear(embedding_dim, 128),
+            nn.ReLU(),
+            nn.Linear(128, 64)
+        )
+        self.item_mlp = nn.Sequential(
+            nn.Linear(embedding_dim, 128),
+            nn.ReLU(),
+            nn.Linear(128, 64)
+        )
+
+    def forward(self, user_ids, item_ids):
+        user_emb = self.user_embedding(user_ids)
+        item_emb = self.item_embedding(item_ids)
+        user_vec = self.user_mlp(user_emb)
+        item_vec = self.item_mlp(item_emb)
+        return user_vec, item_vec
+
+    def predict_score(self, user_vec, item_vec):
+        return F.cosine_similarity(user_vec, item_vec)
+
+# Instantiate model
+model = TwoTowerModel()
+
+# Forward pass
+user_vec, item_vec = model(user_features, item_features)
+
+# Similarity score
+score = model.predict_score(user_vec, item_vec)
+
+print("Cosine similarity scores:", score)
