@@ -3,12 +3,21 @@ package com.sparrowrecsys.online.recprocess;
 import com.sparrowrecsys.online.datamanager.DataManager;
 import com.sparrowrecsys.online.datamanager.Movie;
 import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * Recommendation process of similar movies
  */
 
 public class SimilarMovieProcess {
+
+    // Thread pool for parallel multi-retrieval, core 10, max 100
+    private static final ThreadPoolExecutor retrievalExecutor = new ThreadPoolExecutor(
+            10, 100, 60L, TimeUnit.SECONDS,
+            new LinkedBlockingQueue<>(100),
+            Executors.defaultThreadFactory(),
+            new ThreadPoolExecutor.CallerRunsPolicy()
+    );
 
     /**
      * get recommendation movie list
@@ -76,6 +85,67 @@ public class SimilarMovieProcess {
         List<Movie> latestCandidates = DataManager.getInstance().getMovies(100, "releaseYear");
         for (Movie candidate : latestCandidates){
             candidateMap.put(candidate.getMovieId(), candidate);
+        }
+
+        candidateMap.remove(movie.getMovieId());
+        return new ArrayList<>(candidateMap.values());
+    }
+
+    /**
+     * multiple-retrieval candidate generation method (parallel version)
+     * @param movie input movie object
+     * @return movie candidates
+     */
+    public static List<Movie> multipleRetrievalCandidatesParallel(Movie movie){
+        if (null == movie){
+            return new ArrayList<>();
+        }
+
+        Set<String> genres = new HashSet<>(movie.getGenres());
+
+        ConcurrentHashMap<Integer, Movie> candidateMap = new ConcurrentHashMap<>();
+
+        List<Runnable> retrievalTasks = Arrays.asList(
+                () -> {
+                    for (String genre : genres){
+                        List<Movie> oneCandidates = DataManager.getInstance().getMoviesByGenre(genre, 20, "rating");
+                        for (Movie candidate : oneCandidates){
+                            candidateMap.put(candidate.getMovieId(), candidate);
+                        }
+                    }
+                },
+                () -> {
+                    List<Movie> highRatingCandidates = DataManager.getInstance().getMovies(100, "rating");
+                    for (Movie candidate : highRatingCandidates){
+                        candidateMap.put(candidate.getMovieId(), candidate);
+                    }
+                },
+                () -> {
+                    List<Movie> latestCandidates = DataManager.getInstance().getMovies(100, "releaseYear");
+                    for (Movie candidate : latestCandidates){
+                        candidateMap.put(candidate.getMovieId(), candidate);
+                    }
+                }
+        );
+
+        CountDownLatch latch = new CountDownLatch(retrievalTasks.size());
+
+        for (Runnable task : retrievalTasks) {
+            retrievalExecutor.execute(() -> {
+                try {
+                    task.run();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
 
         candidateMap.remove(movie.getMovieId());
