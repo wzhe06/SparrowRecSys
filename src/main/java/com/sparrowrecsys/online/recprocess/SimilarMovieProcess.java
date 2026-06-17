@@ -101,7 +101,7 @@ public class SimilarMovieProcess {
         }
 
         List<Map.Entry<Movie,Double>> movieScoreList = new ArrayList<>(movieScoreMap.entrySet());
-        movieScoreList.sort(Map.Entry.comparingByValue());
+        movieScoreList.sort(Map.Entry.comparingByValue(Comparator.reverseOrder()));
 
         List<Movie> candidates = new ArrayList<>();
         for (Map.Entry<Movie,Double> movieScoreEntry : movieScoreList){
