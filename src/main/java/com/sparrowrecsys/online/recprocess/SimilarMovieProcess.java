@@ -149,7 +149,7 @@ public class SimilarMovieProcess {
                 sameGenreCount++;
             }
         }
-        double genreSimilarity = (double)sameGenreCount / (movie.getGenres().size() + candidate.getGenres().size()) / 2;
+        double genreSimilarity = (double)sameGenreCount / ((movie.getGenres().size() + candidate.getGenres().size()) / 2.0);
         double ratingScore = candidate.getAverageRating() / 5;
 
         double similarityWeight = 0.7;
