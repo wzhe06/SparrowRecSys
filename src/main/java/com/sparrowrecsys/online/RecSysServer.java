@@ -51,7 +51,8 @@ public class RecSysServer {
                 webRootUri.getPath() + "sampledata/links.csv",webRootUri.getPath() + "sampledata/ratings.csv",
                 webRootUri.getPath() + "modeldata/item2vecEmb.csv",
                 webRootUri.getPath() + "modeldata/userEmb.csv",
-                "i2vEmb", "uEmb");
+                webRootUri.getPath() + "modeldata/lshBucket.csv",
+                "i2vEmb", "uEmb","lshBucket");
 
         //create server context
         ServletContextHandler context = new ServletContextHandler();

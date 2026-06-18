@@ -5,7 +5,7 @@ import java.io.{BufferedWriter, File, FileWriter}
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
 import org.apache.spark.ml.feature.BucketedRandomProjectionLSH
-import org.apache.spark.ml.linalg.Vectors
+import org.apache.spark.ml.linalg.{Vector, Vectors}
 import org.apache.spark.mllib.feature.{Word2Vec, Word2VecModel}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.expressions.UserDefinedFunction
@@ -133,7 +133,6 @@ object Embedding {
       redisClient.close()
     }
 
-    embeddingLSH(sparkSession, model.getVectors)
     model
   }
 
@@ -227,7 +226,7 @@ object Embedding {
     (transitionMatrix, itemDistribution)
   }
 
-  def embeddingLSH(spark:SparkSession, movieEmbMap:Map[String, Array[Float]]): Unit ={
+  def embeddingLSH(spark:SparkSession, movieEmbMap:Map[String, Array[Float]], bucketOutputFilename:String, saveToRedis:Boolean, redisKeyPrefix:String): Unit ={
 
     val movieEmbSeq = movieEmbMap.toSeq.map(item => (item._1, Vectors.dense(item._2.map(f => f.toDouble))))
     val movieEmbDF = spark.createDataFrame(movieEmbSeq).toDF("movieId", "emb")
@@ -245,6 +244,36 @@ object Embedding {
     embBucketResult.printSchema()
     println("movieId, emb, bucketId data result:")
     embBucketResult.show(10, truncate = false)
+
+    //collect the bucket ids of each movie, one bucket value per hash table.
+    //format example: movieId -> "-2.0 14.0 8.0" (NumHashTables = 3)
+    val movieBuckets = embBucketResult.select("movieId", "bucketId").collect().map(row => {
+      val movieId = row.getAs[String]("movieId")
+      //bucketId column is an array of 1-dim vectors, one per hash table
+      val buckets = row.getAs[Seq[Vector]]("bucketId").map(vec => vec(0).toString)
+      (movieId, buckets.mkString(" "))
+    })
+
+    //save bucket data to disk file, convenient for the online server to load.
+    val embFolderPath = this.getClass.getResource("/webroot/modeldata/")
+    val file = new File(embFolderPath.getPath + bucketOutputFilename)
+    val bw = new BufferedWriter(new FileWriter(file))
+    for (movieBucket <- movieBuckets) {
+      bw.write(movieBucket._1 + ":" + movieBucket._2 + "\n")
+    }
+    bw.close()
+
+    //optionally save bucket data to redis to simulate the production environment.
+    if (saveToRedis) {
+      val redisClient = new Jedis(redisEndpoint, redisPort)
+      val params = SetParams.setParams()
+      //set ttl to 24hs
+      params.ex(60 * 60 * 24)
+      for (movieBucket <- movieBuckets) {
+        redisClient.set(redisKeyPrefix + ":" + movieBucket._1, movieBucket._2, params)
+      }
+      redisClient.close()
+    }
 
     println("Approximately searching for 5 nearest neighbors of the sample embedding:")
     val sampleEmb = Vectors.dense(0.795,0.583,1.120,0.850,0.174,-0.839,-0.0633,0.249,0.673,-0.237)
@@ -280,6 +309,8 @@ object Embedding {
 
     val samples = processItemSequence(spark, rawSampleDataPath)
     val model = trainItem2vec(spark, samples, embLength, "item2vecEmb.csv", saveToRedis = false, "i2vEmb")
+    //decoupling
+    embeddingLSH(spark, model.getVectors, "lshBucket.csv", saveToRedis=false, "lshBucket")
     //graphEmb(samples, spark, embLength, "itemGraphEmb.csv", saveToRedis = true, "graphEmb")
     //generateUserEmb(spark, rawSampleDataPath, model, embLength, "userEmb.csv", saveToRedis = false, "uEmb")
   }

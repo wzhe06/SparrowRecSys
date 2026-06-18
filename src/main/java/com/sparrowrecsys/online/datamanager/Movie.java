@@ -28,6 +28,10 @@ public class Movie {
     @JsonIgnore
     Embedding emb;
 
+    //LSH bucket keys the movie falls into (one key per hash table), used for embedding-based retrieval
+    @JsonIgnore
+    List<String> embBuckets;
+
     //all rating scores list
     @JsonIgnore
     List<Rating> ratings;
@@ -145,6 +149,14 @@ public class Movie {
 
     public void setEmb(Embedding emb) {
         this.emb = emb;
+    }
+
+    public List<String> getEmbBuckets() {
+        return embBuckets;
+    }
+
+    public void setEmbBuckets(List<String> embBuckets) {
+        this.embBuckets = embBuckets;
     }
 
     public Map<String, String> getMovieFeatures() {
