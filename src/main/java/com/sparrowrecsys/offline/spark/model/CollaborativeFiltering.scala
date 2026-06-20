@@ -77,7 +77,7 @@ object CollaborativeFiltering {
       .setEvaluator(evaluator)
       .setEstimatorParamMaps(paramGrid)
       .setNumFolds(10)  // Use 3+ in practice
-    val cvModel = cv.fit(test)
+    val cvModel = cv.fit(training)
     val avgMetrics = cvModel.avgMetrics
 
     spark.stop()
